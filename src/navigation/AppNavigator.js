@@ -1,0 +1,27 @@
+// src/navigation/AppNavigator.js
+import * as React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
+import LoginScreen from "../screens/LoginScreen";
+import AdminDashboard from "../screens/AdminDashboard";
+import WorkerDashboard from "../screens/WorkerDashboard";
+
+import AddCollectionScreen from "../screens/AddCollectionScreen";
+import ViewCollectionsScreen from "../screens/ViewCollectionsScreen";
+
+const Stack = createNativeStackNavigator();
+
+export default function AppNavigator() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Admin" component={AdminDashboard} />
+        <Stack.Screen name="Worker" component={WorkerDashboard} />
+        <Stack.Screen name="AddCollection" component={AddCollectionScreen} />
+        <Stack.Screen name="ViewCollections" component={ViewCollectionsScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
