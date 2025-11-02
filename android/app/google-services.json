@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "331489779803",
+    "project_id": "money-collection-b4959",
+    "storage_bucket": "money-collection-b4959.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:331489779803:android:8ab766a3411f4500df9f7e",
+        "android_client_info": {
+          "package_name": "com.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDPJ73fXdC3raDnrbxRDZU5PUWJlwYu5o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -10,27 +10,35 @@ export default function AdminDashboard({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Admin Dashboard (Anil)</Text>
+  <View style={styles.container}>
+    <Text style={styles.title}>Admin Dashboard</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Admin Actions</Text>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Text>Add / Edit Counters (To implement)</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Text>View Daily Summary (To implement)</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Text>Export PDF (To implement)</Text>
-        </TouchableOpacity>
-      </View>
+    <TouchableOpacity
+      style={styles.actionBtn}
+      onPress={() => navigation.navigate("AdminManageCounters")}
+    >
+      <Text>Manage Counters</Text>
+    </TouchableOpacity>
 
-      <TouchableOpacity style={styles.logout} onPress={() => logout()}>
-        <Text style={{ color: "#fff" }}>Logout</Text>
-      </TouchableOpacity>
-    </View>
-  );
+    <TouchableOpacity
+      style={styles.actionBtn}
+      onPress={() => navigation.navigate("AddCollection")}
+    >
+      <Text>Add Collection</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={styles.actionBtn}
+      onPress={() => navigation.navigate("ViewCollections")}
+    >
+      <Text>View Collections</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.logout} onPress={logout}>
+      <Text style={{ color: "#fff" }}>Logout</Text>
+    </TouchableOpacity>
+  </View>
+);
 }
 
 const styles = StyleSheet.create({

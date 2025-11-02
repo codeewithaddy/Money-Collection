@@ -6,7 +6,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "../screens/LoginScreen";
 import AdminDashboard from "../screens/AdminDashboard";
 import WorkerDashboard from "../screens/WorkerDashboard";
-
+import AdminManageCounters from "../screens/AdminManageCounters";
 import AddCollectionScreen from "../screens/AddCollectionScreen";
 import ViewCollectionsScreen from "../screens/ViewCollectionsScreen";
 
@@ -21,6 +21,8 @@ export default function AppNavigator() {
         <Stack.Screen name="Worker" component={WorkerDashboard} />
         <Stack.Screen name="AddCollection" component={AddCollectionScreen} />
         <Stack.Screen name="ViewCollections" component={ViewCollectionsScreen} />
+        <Stack.Screen name="AdminManageCounters" component={AdminManageCounters} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );

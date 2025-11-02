@@ -1,180 +1,220 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, Button, Alert, TouchableOpacity, StyleSheet } from "react-native";
-import { Picker } from "@react-native-picker/picker";
+// src/screens/AddCollectionScreen.js
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  Modal,
+  StyleSheet,
+} from "react-native";
+import firestore from "@react-native-firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import NetInfo from "@react-native-community/netinfo";
-import Icon from "react-native-vector-icons/Ionicons"; // For back button
+import Icon from "react-native-vector-icons/MaterialIcons";
 
-const AddCollectionScreen = ({ navigation, route }) => {
-  const { userRole, userName } = route.params || {};
-
-  const [selectedCounter, setSelectedCounter] = useState("");
+export default function AddCollectionScreen({ navigation }) {
+  const [counters, setCounters] = useState([]);
+  const [filteredCounters, setFilteredCounters] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCounter, setSelectedCounter] = useState(null);
   const [amount, setAmount] = useState("");
-  const [mode, setMode] = useState("offline"); // default
-  const [isConnected, setIsConnected] = useState(true);
+  const [mode, setMode] = useState("offline");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [user, setUser] = useState(null);
 
-  // Mocked counters (in next phase → fetched from Firestore)
-  const counters = [
-    { id: "c1", name: "Shiv Cosmetics" },
-    { id: "c2", name: "Raja Electronics" },
-    { id: "c3", name: "Anil Kirana" },
-  ];
-
-  React.useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected);
-    });
-    return () => unsubscribe();
+  useEffect(() => {
+    (async () => {
+      const raw = await AsyncStorage.getItem("@current_user");
+      if (raw) setUser(JSON.parse(raw));
+    })();
+    const unsubscribe = firestore()
+      .collection("counters")
+      .onSnapshot((snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setCounters(list);
+        setFilteredCounters(list);
+      });
+    return unsubscribe;
   }, []);
 
-  const handleSave = async () => {
-    if (!selectedCounter || !amount) {
-      Alert.alert("Error", "Please select counter and enter amount.");
-      return;
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    if (text.trim() === "") setFilteredCounters(counters);
+    else {
+      const filtered = counters.filter((c) =>
+        c.name.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredCounters(filtered);
     }
+  };
 
-    const collection = {
-      id: Date.now().toString(),
-      counterId: selectedCounter,
-      counterName: counters.find(c => c.id === selectedCounter)?.name || "",
-      amount: parseFloat(amount),
+  const saveCollection = async () => {
+    if (!selectedCounter || !amount) return alert("Please select counter and amount");
+    await firestore().collection("collections").add({
+      workerName: user?.displayName || "Unknown",
+      counterId: selectedCounter.id,
+      counterName: selectedCounter.name,
+      amount: Number(amount),
       mode,
       date: new Date().toISOString().split("T")[0],
-      workerName: userName || "Unknown",
-    };
-
-    try {
-      // Save locally
-      const existing = JSON.parse(await AsyncStorage.getItem("collections")) || [];
-      existing.push(collection);
-      await AsyncStorage.setItem("collections", JSON.stringify(existing));
-
-      Alert.alert(
-        "Success",
-        isConnected
-          ? "Collection saved and ready to sync online!"
-          : "Offline mode: Collection saved locally."
-      );
-      navigation.goBack();
-    } catch (e) {
-      Alert.alert("Error", "Failed to save collection.");
-      console.error(e);
-    }
+    });
+    alert("Collection saved!");
+    setSelectedCounter(null);
+    setAmount("");
   };
 
   return (
     <View style={styles.container}>
-      {/* Back Button */}
-      <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-        <Icon name="arrow-back" size={24} color="black" />
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <Icon name="arrow-back" size={24} color="#333" />
       </TouchableOpacity>
 
       <Text style={styles.title}>Add Collection</Text>
 
-      <Text style={styles.label}>Select Counter:</Text>
-      <View style={styles.pickerBox}>
-        <Picker
-          selectedValue={selectedCounter}
-          onValueChange={(itemValue) => setSelectedCounter(itemValue)}
-        >
-          <Picker.Item label="-- Select Counter --" value="" />
-          {counters.map((counter) => (
-            <Picker.Item key={counter.id} label={counter.name} value={counter.id} />
-          ))}
-        </Picker>
-      </View>
+      <TouchableOpacity
+        style={styles.dropdownBtn}
+        onPress={() => setModalVisible(true)}
+      >
+        <Text style={{ fontSize: 16 }}>
+          {selectedCounter ? selectedCounter.name : "Select Counter"}
+        </Text>
+        <Icon name="arrow-drop-down" size={28} color="#333" />
+      </TouchableOpacity>
 
-      <Text style={styles.label}>Enter Amount:</Text>
+      {/* MODAL DROPDOWN */}
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <TextInput
+              placeholder="Search counter..."
+              value={searchQuery}
+              onChangeText={handleSearch}
+              style={styles.searchBox}
+            />
+            <FlatList
+              data={filteredCounters}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.counterItem}
+                  onPress={() => {
+                    setSelectedCounter(item);
+                    setModalVisible(false);
+                  }}
+                >
+                  <Text>{item.name}</Text>
+                </TouchableOpacity>
+              )}
+            />
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={styles.closeBtn}
+            >
+              <Text style={{ color: "#fff" }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <TextInput
-        style={styles.input}
+        placeholder="Enter Amount"
         keyboardType="numeric"
         value={amount}
         onChangeText={setAmount}
-        placeholder="Enter amount collected"
+        style={styles.input}
       />
 
-      <Text style={styles.label}>Mode:</Text>
-      <View style={styles.modeContainer}>
+      <View style={styles.modeBox}>
         <TouchableOpacity
           style={[styles.modeBtn, mode === "offline" && styles.activeMode]}
           onPress={() => setMode("offline")}
         >
-          <Text>Offline (Cash)</Text>
+          <Text>Offline</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.modeBtn, mode === "online" && styles.activeMode]}
           onPress={() => setMode("online")}
         >
-          <Text>Online (UPI/Card)</Text>
+          <Text>Online</Text>
         </TouchableOpacity>
       </View>
 
-      <Button title="Save Collection" onPress={handleSave} />
-      <Text style={styles.statusText}>
-        {isConnected ? "✅ Online" : "⚠️ Offline — data will sync later"}
-      </Text>
+      <TouchableOpacity style={styles.saveBtn} onPress={saveCollection}>
+        <Text style={{ color: "#fff", fontSize: 16 }}>Save Collection</Text>
+      </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f7f7f7",
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    marginVertical: 5,
-  },
+  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+  title: { fontSize: 22, fontWeight: "700", marginBottom: 15 },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
+    borderColor: "#ddd",
+    borderRadius: 8,
     padding: 10,
-    backgroundColor: "white",
-    marginBottom: 15,
+    marginVertical: 10,
   },
-  pickerBox: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    backgroundColor: "white",
-    marginBottom: 15,
-  },
-  modeContainer: {
+  dropdownBtn: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  modeBtn: {
-    padding: 10,
+    alignItems: "center",
     borderWidth: 1,
-    borderRadius: 10,
-    borderColor: "#aaa",
-    width: "48%",
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  modalBox: {
+    backgroundColor: "#fff",
+    margin: 20,
+    padding: 15,
+    borderRadius: 12,
+    maxHeight: "70%",
+  },
+  searchBox: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
+  },
+  counterItem: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  closeBtn: {
+    backgroundColor: "#007AFF",
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
     alignItems: "center",
   },
-  activeMode: {
-    backgroundColor: "#b5f5c5",
+  modeBox: { flexDirection: "row", justifyContent: "space-between", marginVertical: 10 },
+  modeBtn: {
+    flex: 1,
+    padding: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    marginHorizontal: 4,
   },
-  backBtn: {
-    position: "absolute",
-    top: 40,
-    left: 20,
-    zIndex: 10,
-  },
-  statusText: {
-    textAlign: "center",
+  activeMode: { backgroundColor: "#d1f0d1" },
+  saveBtn: {
+    backgroundColor: "#2ecc71",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
     marginTop: 10,
-    fontStyle: "italic",
   },
+  backBtn: { marginBottom: 10 },
 });
-
-export default AddCollectionScreen;
