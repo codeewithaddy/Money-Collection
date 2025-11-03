@@ -63,6 +63,13 @@ export default function AdminDashboard({ navigation }) {
       <Text>Worker Reports</Text>
     </TouchableOpacity>
 
+    <TouchableOpacity
+      style={styles.actionBtn}
+      onPress={() => navigation.navigate("PDFExport")}
+    >
+      <Text>PDF Export</Text>
+    </TouchableOpacity>
+
     <TouchableOpacity style={styles.logout} onPress={logout}>
       <Text style={{ color: "#fff" }}>Logout</Text>
     </TouchableOpacity>

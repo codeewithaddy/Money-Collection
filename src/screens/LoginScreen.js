@@ -144,6 +144,7 @@ export default function LoginScreen({ navigation }) {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <View style={styles.card}>
+        <Text style={styles.companyName}>Vandana Agencies</Text>
         <Text style={styles.title}>Money Collection</Text>
         <Text style={styles.sub}>Login to continue</Text>
 
@@ -190,7 +191,15 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f2f7ff" },
   card: { width: "90%", padding: 20, backgroundColor: "#fff", borderRadius: 12, elevation: 4 },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 6, textAlign: "center" },
+  companyName: { 
+    fontSize: 28, 
+    fontWeight: "900", 
+    color: "#2f6ce6", 
+    textAlign: "center",
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  title: { fontSize: 18, fontWeight: "600", marginBottom: 6, textAlign: "center", color: "#333" },
   sub: { fontSize: 13, color: "#555", marginBottom: 16, textAlign: "center" },
   input: {
     borderWidth: 1,
