@@ -16,6 +16,8 @@ import NetInfo from "@react-native-community/netinfo";
 import { firestore } from "../firebaseConfig";
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialIcon from "react-native-vector-icons/MaterialIcons";
+import { autoCleanup } from "../utils/dataCleanup";
+import { Calendar } from 'react-native-calendars';
 
 const ViewCollectionsScreen = ({ navigation }) => {
   const [sections, setSections] = useState([]);
@@ -31,6 +33,37 @@ const ViewCollectionsScreen = ({ navigation }) => {
   const [editMode, setEditMode] = useState("offline");
   const [localCollections, setLocalCollections] = useState([]);
   const [pendingChanges, setPendingChanges] = useState(false);
+  const [lastSynced, setLastSynced] = useState(null);
+  const [todayDate, setTodayDate] = useState("");
+
+  // Get today's date in IST (UTC+5:30)
+  const getTodayIST = () => {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    const istTime = new Date(now.getTime() + istOffset);
+    return istTime.toISOString().split('T')[0]; // YYYY-MM-DD
+  };
+
+  useEffect(() => {
+    const updateTodayDate = () => {
+      setTodayDate(getTodayIST());
+    };
+    updateTodayDate();
+
+    // Update date at midnight IST
+    const checkMidnight = setInterval(() => {
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istTime = new Date(now.getTime() + istOffset);
+      const hours = istTime.getUTCHours();
+      const minutes = istTime.getUTCMinutes();
+      if (hours === 0 && minutes === 0) {
+        updateTodayDate();
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(checkMidnight);
+  }, []);
 
   const loadData = async () => {
     try {
@@ -103,6 +136,11 @@ const ViewCollectionsScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadData();
+    // Load last synced time
+    (async () => {
+      const syncTime = await AsyncStorage.getItem("@last_synced");
+      if (syncTime) setLastSynced(syncTime);
+    })();
   }, [selectedDate]);
 
   useEffect(() => {
@@ -115,6 +153,15 @@ const ViewCollectionsScreen = ({ navigation }) => {
   };
 
   const openEditModal = (item) => {
+    // Check if worker can edit this entry
+    if (user?.role !== "admin" && item.date !== todayDate) {
+      Alert.alert(
+        "Read-Only",
+        "You can only edit today's entries. This entry is from " + item.date + ".\n\nOnly admin can edit past entries."
+      );
+      return;
+    }
+    
     setEditItem(item);
     setEditAmount(String(item.amount));
     setEditMode(item.mode);
@@ -143,6 +190,15 @@ const ViewCollectionsScreen = ({ navigation }) => {
   };
 
   const deleteItem = async (item) => {
+    // Check if worker can delete this entry
+    if (user?.role !== "admin" && item.date !== todayDate) {
+      Alert.alert(
+        "Read-Only",
+        "You can only delete today's entries. This entry is from " + item.date + ".\n\nOnly admin can delete past entries."
+      );
+      return;
+    }
+
     Alert.alert(
       "Delete Collection",
       `Delete ${item.counterName} - ₹${item.amount}?`,
@@ -215,7 +271,17 @@ const ViewCollectionsScreen = ({ navigation }) => {
                   await firestore().collection("collections").add(dataToSync);
                 }
 
+                // Update last synced timestamp
+                const syncTime = new Date().toISOString();
+                await AsyncStorage.setItem("@last_synced", syncTime);
+                setLastSynced(syncTime);
+
                 setPendingChanges(false);
+                
+                // Run auto-cleanup after sync (deletes data older than 1 month)
+                console.log("Running post-sync cleanup...");
+                await autoCleanup();
+                
                 Alert.alert("Success", "All data synced to server!");
               } catch (error) {
                 Alert.alert(
@@ -267,18 +333,28 @@ const ViewCollectionsScreen = ({ navigation }) => {
                   </Text>
                 </View>
                 <Text style={styles.breakdownAmount}>₹{col.amount}</Text>
-                <TouchableOpacity
-                  onPress={() => openEditModal(col)}
-                  style={styles.iconBtn}
-                >
-                  <MaterialIcon name="edit" size={20} color="#007AFF" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => deleteItem(col)}
-                  style={styles.iconBtn}
-                >
-                  <MaterialIcon name="delete" size={20} color="#f44336" />
-                </TouchableOpacity>
+                
+                {/* Show lock icon for read-only entries (worker viewing past dates) */}
+                {user?.role !== "admin" && col.date !== todayDate ? (
+                  <View style={styles.readOnlyBadge}>
+                    <MaterialIcon name="lock" size={16} color="#999" />
+                  </View>
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => openEditModal(col)}
+                      style={styles.iconBtn}
+                    >
+                      <MaterialIcon name="edit" size={20} color="#007AFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => deleteItem(col)}
+                      style={styles.iconBtn}
+                    >
+                      <MaterialIcon name="delete" size={20} color="#f44336" />
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             ))}
           </View>
@@ -313,18 +389,36 @@ const ViewCollectionsScreen = ({ navigation }) => {
         </Text>
       </View>
 
+      {/* Last Synced Info */}
+      {lastSynced && (
+        <View style={styles.syncInfo}>
+          <MaterialIcon name="cloud-done" size={14} color="#2ecc71" />
+          <Text style={styles.syncInfoText}>
+            Last synced: {new Date(lastSynced).toLocaleString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              hour: '2-digit',
+              minute: '2-digit',
+              day: '2-digit',
+              month: 'short'
+            })}
+          </Text>
+        </View>
+      )}
+
       <View style={styles.actionRow}>
-        {user?.role === "admin" && (
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={() => setDateModalVisible(true)}
-          >
-            <MaterialIcon name="calendar-today" size={18} color="#007AFF" />
-            <Text style={styles.filterText}>
-              {selectedDate || "All Dates"}
-            </Text>
-          </TouchableOpacity>
-        )}
+        {/* Date Filter - Available for both admin and workers */}
+        <TouchableOpacity
+          style={styles.filterBtn}
+          onPress={() => setDateModalVisible(true)}
+        >
+          <MaterialIcon name="calendar-today" size={18} color="#007AFF" />
+          <Text style={styles.filterText}>
+            {selectedDate || (user?.role === "admin" ? "All Dates" : "Today")}
+          </Text>
+          {user?.role !== "admin" && selectedDate && selectedDate !== todayDate && (
+            <MaterialIcon name="lock" size={14} color="#ff9800" />
+          )}
+        </TouchableOpacity>
         <TouchableOpacity style={styles.syncBtn} onPress={syncToFirebase}>
           <MaterialIcon name="sync" size={20} color="#fff" />
           <Text style={styles.syncBtnText}>Sync</Text>
@@ -332,12 +426,23 @@ const ViewCollectionsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* Info for workers viewing past dates */}
+      {user?.role !== "admin" && selectedDate && selectedDate !== todayDate && (
+        <View style={styles.readOnlyBanner}>
+          <MaterialIcon name="info" size={18} color="#ff9800" />
+          <Text style={styles.readOnlyText}>
+            Viewing past date ({selectedDate}). You can view but cannot edit these entries.
+          </Text>
+        </View>
+      )}
+
       {/* Date Filter Modal */}
       <Modal visible={dateModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.calendarModalBox}>
             <Text style={styles.modalTitle}>Select Date</Text>
             <ScrollView style={styles.calendarScroll}>
+              {/* All Dates Option */}
               <TouchableOpacity
                 style={[
                   styles.calendarDateItem,
@@ -356,42 +461,85 @@ const ViewCollectionsScreen = ({ navigation }) => {
                   )}
                 </View>
               </TouchableOpacity>
-              
-              {availableDates.map((date) => {
-                const dateObj = new Date(date);
-                const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-                const monthName = dateObj.toLocaleDateString('en-US', { month: 'short' });
-                const day = dateObj.getDate();
-                const year = dateObj.getFullYear();
-                
-                return (
-                  <TouchableOpacity
-                    key={date}
-                    style={[
-                      styles.calendarDateItem,
-                      selectedDate === date && styles.selectedCalendarDate,
-                    ]}
-                    onPress={() => {
-                      setSelectedDate(date);
-                      setDateModalVisible(false);
-                    }}
-                  >
-                    <View style={styles.dateCard}>
-                      <View style={styles.dateIconBox}>
-                        <Text style={styles.dateDay}>{day}</Text>
-                        <Text style={styles.dateMonth}>{monthName}</Text>
-                      </View>
-                      <View style={styles.dateInfo}>
-                        <Text style={styles.calendarDateText}>{dayName}, {date}</Text>
-                        <Text style={styles.dateYear}>{year}</Text>
-                      </View>
-                      {selectedDate === date && (
-                        <MaterialIcon name="check-circle" size={20} color="#2ecc71" />
-                      )}
+
+              {/* Today Option */}
+              {todayDate && (
+                <TouchableOpacity
+                  style={[
+                    styles.calendarDateItem,
+                    selectedDate === todayDate && styles.selectedCalendarDate,
+                  ]}
+                  onPress={() => {
+                    setSelectedDate(todayDate);
+                    setDateModalVisible(false);
+                  }}
+                >
+                  <View style={styles.dateCard}>
+                    <View style={[styles.dateIconBox, {backgroundColor: "#2ecc71"}]}>
+                      <MaterialIcon name="today" size={24} color="#fff" />
                     </View>
-                  </TouchableOpacity>
-                );
-              })}
+                    <View style={styles.dateInfo}>
+                      <Text style={styles.calendarDateText}>Today - {todayDate}</Text>
+                      <Text style={styles.dateYear}>Current date</Text>
+                    </View>
+                    {selectedDate === todayDate && (
+                      <MaterialIcon name="check-circle" size={20} color="#2ecc71" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+              
+              {/* Generate last 90 days */}
+              {(() => {
+                const dates = [];
+                const today = new Date();
+                for (let i = 0; i < 90; i++) {
+                  const date = new Date(today);
+                  date.setDate(today.getDate() - i);
+                  const dateStr = date.toISOString().split('T')[0];
+                  
+                  // Skip today as it's already shown
+                  if (dateStr === todayDate) continue;
+                  
+                  const hasCollections = availableDates.includes(dateStr);
+                  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                  const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+                  const day = date.getDate();
+                  const year = date.getFullYear();
+                  
+                  dates.push(
+                    <TouchableOpacity
+                      key={dateStr}
+                      style={[
+                        styles.calendarDateItem,
+                        selectedDate === dateStr && styles.selectedCalendarDate,
+                      ]}
+                      onPress={() => {
+                        setSelectedDate(dateStr);
+                        setDateModalVisible(false);
+                      }}
+                    >
+                      <View style={styles.dateCard}>
+                        <View style={styles.dateIconBox}>
+                          <Text style={styles.dateDay}>{day}</Text>
+                          <Text style={styles.dateMonth}>{monthName}</Text>
+                        </View>
+                        <View style={styles.dateInfo}>
+                          <Text style={styles.calendarDateText}>{dayName}, {dateStr}</Text>
+                          <Text style={styles.dateYear}>
+                            {year}
+                            {hasCollections && " • Has collections"}
+                          </Text>
+                        </View>
+                        {selectedDate === dateStr && (
+                          <MaterialIcon name="check-circle" size={20} color="#2ecc71" />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }
+                return dates;
+              })()}
             </ScrollView>
             <TouchableOpacity
               onPress={() => setDateModalVisible(false)}
@@ -466,9 +614,20 @@ const ViewCollectionsScreen = ({ navigation }) => {
 
       {sections.length === 0 ? (
         <View style={styles.noDataContainer}>
-          <MaterialIcon name="inbox" size={64} color="#ccc" />
-          <Text style={styles.noData}>No collections found.</Text>
-          <Text style={styles.noDataHint}>Add collections to see them here</Text>
+          <MaterialIcon name="event-busy" size={64} color="#ccc" />
+          {selectedDate ? (
+            <>
+              <Text style={styles.noData}>0 Collections</Text>
+              <Text style={styles.noDataHint}>No collections on {selectedDate}</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.noData}>0 Collections</Text>
+              <Text style={styles.noDataHint}>
+                {user?.role === "admin" ? "No collections found" : "You haven't added any collections yet"}
+              </Text>
+            </>
+          )}
         </View>
       ) : (
         <SectionList
@@ -481,10 +640,21 @@ const ViewCollectionsScreen = ({ navigation }) => {
       )}
 
       <View style={styles.summary}>
-        <Text style={styles.summaryTitle}>Summary</Text>
-        <Text>Cash: ₹{totals.cash}</Text>
-        <Text>Online: ₹{totals.online}</Text>
-        <Text style={{ fontWeight: "bold" }}>Total: ₹{totals.grand}</Text>
+        <Text style={styles.summaryTitle}>
+          {selectedDate ? `Summary - ${selectedDate}` : "Summary"}
+        </Text>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Cash:</Text>
+          <Text style={styles.summaryValue}>₹{totals.cash.toLocaleString()}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Online:</Text>
+          <Text style={styles.summaryValue}>₹{totals.online.toLocaleString()}</Text>
+        </View>
+        <View style={[styles.summaryRow, styles.totalRow]}>
+          <Text style={styles.totalLabel}>Total:</Text>
+          <Text style={styles.totalValue}>₹{totals.grand.toLocaleString()}</Text>
+        </View>
       </View>
     </View>
   );
@@ -556,16 +726,84 @@ const styles = StyleSheet.create({
   summary: {
     marginTop: 10,
     backgroundColor: "#d4f4d7",
-    padding: 15,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 12,
+    elevation: 2,
   },
   summaryTitle: {
     fontWeight: "bold",
     fontSize: 18,
-    marginBottom: 5,
+    marginBottom: 12,
+    color: "#2c5f2d",
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  summaryLabel: {
+    fontSize: 15,
+    color: "#2c5f2d",
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2c5f2d",
+  },
+  totalRow: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 2,
+    borderTopColor: "#2ecc71",
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2c5f2d",
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#2c5f2d",
   },
   backBtn: {
     padding: 4,
+  },
+  syncInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f0f9ff",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+    gap: 6,
+  },
+  syncInfoText: {
+    fontSize: 12,
+    color: "#666",
+  },
+  readOnlyBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff3cd",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  readOnlyText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#856404",
+    fontWeight: "500",
+  },
+  readOnlyBadge: {
+    padding: 8,
+    marginLeft: 4,
   },
   filterBtn: {
     flexDirection: "row",
@@ -574,6 +812,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    gap: 4,
   },
   filterText: {
     marginLeft: 6,

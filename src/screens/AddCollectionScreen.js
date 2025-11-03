@@ -9,10 +9,12 @@ import {
   Modal,
   StyleSheet,
   Alert,
+  ScrollView,
 } from "react-native";
 import firestore from "@react-native-firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { Calendar } from 'react-native-calendars';
 
 export default function AddCollectionScreen({ navigation }) {
   const [counters, setCounters] = useState([]);
@@ -24,6 +26,16 @@ export default function AddCollectionScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [user, setUser] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [dateModalVisible, setDateModalVisible] = useState(false);
+
+  // Get today's date in IST (UTC+5:30)
+  const getTodayIST = () => {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istTime = new Date(now.getTime() + istOffset);
+    return istTime.toISOString().split('T')[0];
+  };
 
   const updatePendingCount = async () => {
     try {
@@ -50,6 +62,8 @@ export default function AddCollectionScreen({ navigation }) {
       const raw = await AsyncStorage.getItem("@current_user");
       if (raw) setUser(JSON.parse(raw));
       await updatePendingCount();
+      // Set today as default date
+      setSelectedDate(getTodayIST());
     })();
     
     const unsubscribe = firestore()
@@ -87,14 +101,13 @@ export default function AddCollectionScreen({ navigation }) {
   const saveCollection = async () => {
     if (!selectedCounter || !amount) return alert("Please select counter and amount");
     
-    const today = new Date().toISOString().split("T")[0];
     const collectionData = {
       workerName: user?.displayName || "Unknown",
       counterId: selectedCounter.id,
       counterName: selectedCounter.name,
       amount: Number(amount),
       mode,
-      date: today,
+      date: selectedDate, // Use selected date instead of today
       timestamp: new Date().toISOString(),
       localId: Date.now().toString(), // Unique local ID
     };
@@ -107,11 +120,16 @@ export default function AddCollectionScreen({ navigation }) {
       await AsyncStorage.setItem("@local_collections", JSON.stringify(list));
       
       await updatePendingCount();
-      alert("Collection saved! Go to View Collections to sync.");
+      const dateMsg = selectedDate !== getTodayIST() 
+        ? ` for ${selectedDate}` 
+        : "";
+      alert(`Collection saved${dateMsg}! Go to View Collections to sync.`);
       
       setSelectedCounter(null);
       setAmount("");
       setMode("offline");
+      // Reset to today after saving
+      setSelectedDate(getTodayIST());
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -176,6 +194,87 @@ export default function AddCollectionScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* Date Selector - Admin Only */}
+      {user?.role === "admin" && (
+        <>
+          <TouchableOpacity
+            style={styles.dateSelector}
+            onPress={() => setDateModalVisible(true)}
+          >
+            <Icon name="calendar-today" size={20} color="#007AFF" />
+            <Text style={styles.dateSelectorText}>
+              {selectedDate === getTodayIST() 
+                ? `Today - ${selectedDate}` 
+                : selectedDate}
+            </Text>
+            <Icon name="arrow-drop-down" size={24} color="#666" />
+          </TouchableOpacity>
+
+          {/* Date Selection Modal with Calendar */}
+          <Modal visible={dateModalVisible} animationType="slide" transparent={true}>
+            <View style={styles.modalContainer}>
+              <View style={styles.calendarModalBox}>
+                <Text style={styles.modalTitle}>Select Date</Text>
+                
+                <Calendar
+                  current={selectedDate}
+                  onDayPress={(day) => {
+                    setSelectedDate(day.dateString);
+                    setDateModalVisible(false);
+                  }}
+                  markedDates={{
+                    [selectedDate]: {
+                      selected: true,
+                      selectedColor: '#007AFF',
+                      selectedTextColor: '#fff'
+                    },
+                    [getTodayIST()]: {
+                      marked: true,
+                      dotColor: '#2ecc71'
+                    }
+                  }}
+                  maxDate={getTodayIST()}
+                  minDate={(() => {
+                    const today = new Date();
+                    today.setDate(today.getDate() - 30);
+                    return today.toISOString().split('T')[0];
+                  })()}
+                  theme={{
+                    selectedDayBackgroundColor: '#007AFF',
+                    todayTextColor: '#2ecc71',
+                    arrowColor: '#007AFF',
+                    monthTextColor: '#000',
+                    textMonthFontWeight: 'bold',
+                    textDayFontSize: 16,
+                    textMonthFontSize: 18,
+                  }}
+                />
+                
+                <View style={styles.calendarFooter}>
+                  <TouchableOpacity
+                    style={styles.todayBtn}
+                    onPress={() => {
+                      setSelectedDate(getTodayIST());
+                      setDateModalVisible(false);
+                    }}
+                  >
+                    <Icon name="today" size={20} color="#fff" />
+                    <Text style={styles.todayBtnText}>Today</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    onPress={() => setDateModalVisible(false)}
+                    style={styles.closeBtn}
+                  >
+                    <Text style={{ color: "#fff", fontWeight: "600" }}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        </>
+      )}
 
       <TextInput
         placeholder="Enter Amount"
@@ -285,4 +384,74 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   backBtn: { marginBottom: 10 },
+  dateSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e3f2fd",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+    gap: 8,
+  },
+  dateSelectorText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#007AFF",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+    textAlign: "center",
+    color: "#333",
+  },
+  dateOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 8,
+    backgroundColor: "#f9f9f9",
+    gap: 12,
+  },
+  selectedDateOption: {
+    backgroundColor: "#e3f2fd",
+  },
+  dateOptionText: {
+    flex: 1,
+    fontSize: 15,
+    color: "#333",
+  },
+  selectedText: {
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  calendarModalBox: {
+    backgroundColor: "#fff",
+    margin: 20,
+    borderRadius: 16,
+    padding: 16,
+    maxHeight: "80%",
+  },
+  calendarFooter: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 16,
+  },
+  todayBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2ecc71",
+    padding: 12,
+    borderRadius: 10,
+    gap: 6,
+  },
+  todayBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+  },
 });

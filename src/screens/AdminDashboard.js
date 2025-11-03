@@ -1,9 +1,17 @@
 // src/screens/AdminDashboard.js
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { autoCleanup } from "../utils/dataCleanup";
 
 export default function AdminDashboard({ navigation }) {
+  // Run auto-cleanup on dashboard load (once per day)
+  useEffect(() => {
+    (async () => {
+      await autoCleanup();
+    })();
+  }, []);
+
   const logout = async () => {
     await AsyncStorage.removeItem("@current_user");
     navigation.replace("Login");
@@ -39,6 +47,13 @@ export default function AdminDashboard({ navigation }) {
       onPress={() => navigation.navigate("ViewCollections")}
     >
       <Text>View Collections</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={styles.actionBtn}
+      onPress={() => navigation.navigate("CounterReport")}
+    >
+      <Text>Counter Reports</Text>
     </TouchableOpacity>
 
     <TouchableOpacity style={styles.logout} onPress={logout}>

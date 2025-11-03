@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { autoCleanup } from "../utils/dataCleanup";
 
 export default function WorkerDashboard({ navigation }) {
   const [user, setUser] = useState(null);
@@ -10,6 +11,9 @@ export default function WorkerDashboard({ navigation }) {
     (async () => {
       const raw = await AsyncStorage.getItem("@current_user");
       if (raw) setUser(JSON.parse(raw));
+      
+      // Run auto-cleanup (once per day)
+      await autoCleanup();
     })();
   }, []);
 
