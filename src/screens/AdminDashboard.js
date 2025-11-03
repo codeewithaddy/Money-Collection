@@ -22,6 +22,13 @@ export default function AdminDashboard({ navigation }) {
 
     <TouchableOpacity
       style={styles.actionBtn}
+      onPress={() => navigation.navigate("AdminManageUsers")}
+    >
+      <Text>Manage Users</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={styles.actionBtn}
       onPress={() => navigation.navigate("AddCollection")}
     >
       <Text>Add Collection</Text>
