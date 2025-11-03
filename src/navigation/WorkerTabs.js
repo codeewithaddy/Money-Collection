@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -15,7 +15,7 @@ export default function WorkerTabs({ navigation }) {
         <Text style={styles.headerTitle}>Collections</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <TouchableOpacity
           style={[styles.actionCard, { backgroundColor: '#e8f5e9' }]}
           onPress={() => navigation.navigate('AddCollection')}
@@ -42,7 +42,7 @@ export default function WorkerTabs({ navigation }) {
           <Text style={styles.cardTitle}>Logout</Text>
           <Text style={styles.cardSub}>Sign out</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -67,6 +67,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
   },
   actionCard: {
