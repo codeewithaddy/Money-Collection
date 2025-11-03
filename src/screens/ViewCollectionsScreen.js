@@ -74,23 +74,32 @@ const ViewCollectionsScreen = ({ navigation }) => {
 
       // Load local collections
       const stored = await AsyncStorage.getItem("@local_collections");
-      const localData = stored ? JSON.parse(stored) : [];
+      const allCollections = stored ? JSON.parse(stored) : [];
 
-      // Filter based on role
-      let filtered =
-        userData.role === "admin"
-          ? localData
-          : localData.filter((c) => c.workerName === userData.displayName);
+      // Calculate cutoff date (30 days ago)
+      const cutoffDate = (() => {
+        const date = new Date();
+        date.setDate(date.getDate() - 30);
+        return date.toISOString().split('T')[0];
+      })();
 
-      // Filter by selected date if any
+      // Filter out data older than 30 days (ENFORCED)
+      let filtered = allCollections.filter((c) => c.date >= cutoffDate);
+
+      // Filter by user role
+      if (userData.role !== "admin") {
+        filtered = filtered.filter((c) => c.workerName === userData.displayName);
+      }
+      
+      // Filter by selected date
       if (selectedDate) {
         filtered = filtered.filter((c) => c.date === selectedDate);
       }
 
-      setLocalCollections(localData);
+      setLocalCollections(filtered);
 
-      // Get unique dates for filter
-      const dates = [...new Set(localData.map((c) => c.date))].sort(
+      // Get unique dates for filter (only last 30 days)
+      const dates = [...new Set(filtered.map((c) => c.date))].sort(
         (a, b) => new Date(b) - new Date(a)
       );
       setAvailableDates(dates);
@@ -436,117 +445,78 @@ const ViewCollectionsScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Date Filter Modal */}
+      {/* Date Filter Modal with Calendar */}
       <Modal visible={dateModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.calendarModalBox}>
             <Text style={styles.modalTitle}>Select Date</Text>
-            <ScrollView style={styles.calendarScroll}>
-              {/* All Dates Option */}
+            
+            <Calendar
+              current={selectedDate || todayDate}
+              onDayPress={(day) => {
+                setSelectedDate(day.dateString);
+                setDateModalVisible(false);
+              }}
+              markedDates={{
+                ...(selectedDate ? {
+                  [selectedDate]: {
+                    selected: true,
+                    selectedColor: '#007AFF',
+                    selectedTextColor: '#fff'
+                  }
+                } : {}),
+                [todayDate]: {
+                  marked: true,
+                  dotColor: '#2ecc71'
+                }
+              }}
+              maxDate={todayDate}
+              minDate={(() => {
+                const today = new Date();
+                today.setDate(today.getDate() - 30); // Only last 30 days
+                return today.toISOString().split('T')[0];
+              })()}
+              theme={{
+                selectedDayBackgroundColor: '#007AFF',
+                todayTextColor: '#2ecc71',
+                arrowColor: '#007AFF',
+                monthTextColor: '#000',
+                textMonthFontWeight: 'bold',
+                textDayFontSize: 16,
+                textMonthFontSize: 18,
+              }}
+            />
+            
+            <View style={styles.calendarFooter}>
               <TouchableOpacity
-                style={[
-                  styles.calendarDateItem,
-                  selectedDate === null && styles.selectedCalendarDate,
-                ]}
+                style={styles.allDatesBtn}
                 onPress={() => {
                   setSelectedDate(null);
                   setDateModalVisible(false);
                 }}
               >
-                <View style={styles.dateCard}>
-                  <MaterialIcon name="event" size={24} color="#007AFF" />
-                  <Text style={styles.calendarDateText}>All Dates</Text>
-                  {selectedDate === null && (
-                    <MaterialIcon name="check-circle" size={20} color="#2ecc71" />
-                  )}
-                </View>
+                <MaterialIcon name="event" size={20} color="#fff" />
+                <Text style={styles.allDatesBtnText}>All Dates</Text>
               </TouchableOpacity>
 
-              {/* Today Option */}
-              {todayDate && (
-                <TouchableOpacity
-                  style={[
-                    styles.calendarDateItem,
-                    selectedDate === todayDate && styles.selectedCalendarDate,
-                  ]}
-                  onPress={() => {
-                    setSelectedDate(todayDate);
-                    setDateModalVisible(false);
-                  }}
-                >
-                  <View style={styles.dateCard}>
-                    <View style={[styles.dateIconBox, {backgroundColor: "#2ecc71"}]}>
-                      <MaterialIcon name="today" size={24} color="#fff" />
-                    </View>
-                    <View style={styles.dateInfo}>
-                      <Text style={styles.calendarDateText}>Today - {todayDate}</Text>
-                      <Text style={styles.dateYear}>Current date</Text>
-                    </View>
-                    {selectedDate === todayDate && (
-                      <MaterialIcon name="check-circle" size={20} color="#2ecc71" />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                style={styles.todayBtn}
+                onPress={() => {
+                  setSelectedDate(todayDate);
+                  setDateModalVisible(false);
+                }}
+              >
+                <MaterialIcon name="today" size={20} color="#fff" />
+                <Text style={styles.todayBtnText}>Today</Text>
+              </TouchableOpacity>
               
-              {/* Generate last 90 days */}
-              {(() => {
-                const dates = [];
-                const today = new Date();
-                for (let i = 0; i < 90; i++) {
-                  const date = new Date(today);
-                  date.setDate(today.getDate() - i);
-                  const dateStr = date.toISOString().split('T')[0];
-                  
-                  // Skip today as it's already shown
-                  if (dateStr === todayDate) continue;
-                  
-                  const hasCollections = availableDates.includes(dateStr);
-                  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-                  const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-                  const day = date.getDate();
-                  const year = date.getFullYear();
-                  
-                  dates.push(
-                    <TouchableOpacity
-                      key={dateStr}
-                      style={[
-                        styles.calendarDateItem,
-                        selectedDate === dateStr && styles.selectedCalendarDate,
-                      ]}
-                      onPress={() => {
-                        setSelectedDate(dateStr);
-                        setDateModalVisible(false);
-                      }}
-                    >
-                      <View style={styles.dateCard}>
-                        <View style={styles.dateIconBox}>
-                          <Text style={styles.dateDay}>{day}</Text>
-                          <Text style={styles.dateMonth}>{monthName}</Text>
-                        </View>
-                        <View style={styles.dateInfo}>
-                          <Text style={styles.calendarDateText}>{dayName}, {dateStr}</Text>
-                          <Text style={styles.dateYear}>
-                            {year}
-                            {hasCollections && " • Has collections"}
-                          </Text>
-                        </View>
-                        {selectedDate === dateStr && (
-                          <MaterialIcon name="check-circle" size={20} color="#2ecc71" />
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }
-                return dates;
-              })()}
-            </ScrollView>
-            <TouchableOpacity
-              onPress={() => setDateModalVisible(false)}
-              style={styles.closeBtn}
-            >
-              <Text style={{ color: "#fff", fontWeight: "600" }}>Close</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setDateModalVisible(false)}
+                style={styles.closeBtn}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600" }}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -900,7 +870,9 @@ const styles = StyleSheet.create({
   calendarModalBox: {
     backgroundColor: "#fff",
     margin: 20,
-    borderRadius: 12,
+    borderRadius: 16,
+    padding: 16,
+    paddingBottom: 20,
     maxHeight: "80%",
   },
   calendarScroll: {
@@ -983,10 +955,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   closeBtn: {
+    flex: 1,
     backgroundColor: "#007AFF",
-    padding: 14,
-    borderRadius: 8,
-    margin: 15,
+    padding: 12,
+    borderRadius: 10,
     alignItems: "center",
   },
   saveBtn: {
@@ -1025,24 +997,6 @@ const styles = StyleSheet.create({
   },
   activeMode: { backgroundColor: "#d1f0d1" },
   buttonRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 20,
-  },
-  cancelBtn: {
-    flex: 1,
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  cancelBtnText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  saveEditBtn: {
-    flex: 1,
     backgroundColor: "#2ecc71",
     padding: 12,
     borderRadius: 8,
@@ -1052,6 +1006,41 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
     fontSize: 15,
+  },
+  calendarFooter: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  allDatesBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#9c27b0",
+    padding: 12,
+    borderRadius: 10,
+    gap: 6,
+  },
+  allDatesBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  todayBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2ecc71",
+    padding: 12,
+    borderRadius: 10,
+    gap: 6,
+  },
+  todayBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
   },
 });
 
