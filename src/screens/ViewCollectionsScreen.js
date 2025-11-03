@@ -1,70 +1,482 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SectionList,
+  Modal,
+  FlatList,
+  TextInput,
+  Alert,
+  ScrollView,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
+import { firestore } from "../firebaseConfig";
 import Icon from "react-native-vector-icons/Ionicons";
+import MaterialIcon from "react-native-vector-icons/MaterialIcons";
 
-const ViewCollectionsScreen = ({ navigation, route }) => {
-  const { userName } = route.params || {};
-  const [collections, setCollections] = useState([]);
+const ViewCollectionsScreen = ({ navigation }) => {
+  const [sections, setSections] = useState([]);
   const [totals, setTotals] = useState({ cash: 0, online: 0, grand: 0 });
+  const [user, setUser] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [availableDates, setAvailableDates] = useState([]);
+  const [dateModalVisible, setDateModalVisible] = useState(false);
+  const [expandedCounters, setExpandedCounters] = useState({});
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editMode, setEditMode] = useState("offline");
+  const [localCollections, setLocalCollections] = useState([]);
+  const [pendingChanges, setPendingChanges] = useState(false);
+
+  const loadData = async () => {
+    try {
+      const raw = await AsyncStorage.getItem("@current_user");
+      if (!raw) return;
+      const userData = JSON.parse(raw);
+      setUser(userData);
+
+      // Load local collections
+      const stored = await AsyncStorage.getItem("@local_collections");
+      const localData = stored ? JSON.parse(stored) : [];
+
+      // Filter based on role
+      let filtered =
+        userData.role === "admin"
+          ? localData
+          : localData.filter((c) => c.workerName === userData.displayName);
+
+      // Filter by selected date if any
+      if (selectedDate) {
+        filtered = filtered.filter((c) => c.date === selectedDate);
+      }
+
+      setLocalCollections(localData);
+
+      // Get unique dates for filter
+      const dates = [...new Set(localData.map((c) => c.date))].sort(
+        (a, b) => new Date(b) - new Date(a)
+      );
+      setAvailableDates(dates);
+
+      // Group by date, then by counter
+      const grouped = {};
+      filtered.forEach((item) => {
+        if (!grouped[item.date]) grouped[item.date] = {};
+        if (!grouped[item.date][item.counterName]) {
+          grouped[item.date][item.counterName] = {
+            counterName: item.counterName,
+            counterId: item.counterId,
+            collections: [],
+            totalAmount: 0,
+          };
+        }
+        grouped[item.date][item.counterName].collections.push(item);
+        grouped[item.date][item.counterName].totalAmount += item.amount;
+      });
+
+      // Convert to sections format
+      const sectionsData = Object.keys(grouped)
+        .sort((a, b) => new Date(b) - new Date(a))
+        .map((date) => ({
+          title: date,
+          data: Object.values(grouped[date]),
+        }));
+
+      setSections(sectionsData);
+
+      // Calculate totals
+      let cash = 0,
+        online = 0;
+      filtered.forEach((c) => {
+        if (c.mode === "offline") cash += c.amount;
+        else online += c.amount;
+      });
+      setTotals({ cash, online, grand: cash + online });
+    } catch (error) {
+      console.error("Load error:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchCollections = async () => {
-      try {
-        const savedData = await AsyncStorage.getItem("collections");
-        const parsed = savedData ? JSON.parse(savedData) : [];
+    loadData();
+  }, [selectedDate]);
 
-        // Filter for this worker (admin sees all)
-        const filtered =
-          userName && userName.toLowerCase() !== "admin"
-            ? parsed.filter((c) => c.workerName === userName)
-            : parsed;
-
-        setCollections(filtered);
-
-        // Calculate totals
-        let cash = 0,
-          online = 0;
-        filtered.forEach((c) => {
-          if (c.mode === "offline") cash += c.amount;
-          else online += c.amount;
-        });
-        setTotals({ cash, online, grand: cash + online });
-      } catch (e) {
-        console.error("Error reading collections", e);
-      }
-    };
-
-    const unsubscribe = navigation.addListener("focus", fetchCollections);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", loadData);
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, selectedDate]);
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.counterName}>{item.counterName}</Text>
-      <Text>Amount: ₹{item.amount}</Text>
-      <Text>Mode: {item.mode === "offline" ? "Cash" : "Online"}</Text>
-      <Text>Date: {item.date}</Text>
-      <Text>Worker: {item.workerName}</Text>
-    </View>
-  );
+  const toggleCounter = (key) => {
+    setExpandedCounters((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const openEditModal = (item) => {
+    setEditItem(item);
+    setEditAmount(String(item.amount));
+    setEditMode(item.mode);
+    setEditModalVisible(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editAmount || isNaN(editAmount)) {
+      return Alert.alert("Error", "Please enter a valid amount");
+    }
+
+    const updatedCollections = localCollections.map((c) =>
+      c.localId === editItem.localId
+        ? { ...c, amount: Number(editAmount), mode: editMode }
+        : c
+    );
+
+    await AsyncStorage.setItem(
+      "@local_collections",
+      JSON.stringify(updatedCollections)
+    );
+    setPendingChanges(true);
+    setEditModalVisible(false);
+    loadData();
+    Alert.alert("Success", "Updated! Click Sync to save changes.");
+  };
+
+  const deleteItem = async (item) => {
+    Alert.alert(
+      "Delete Collection",
+      `Delete ${item.counterName} - ₹${item.amount}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const updatedCollections = localCollections.filter(
+              (c) => c.localId !== item.localId
+            );
+            await AsyncStorage.setItem(
+              "@local_collections",
+              JSON.stringify(updatedCollections)
+            );
+            setPendingChanges(true);
+            loadData();
+            Alert.alert("Deleted", "Click Sync to save changes.");
+          },
+        },
+      ]
+    );
+  };
+
+  const syncToFirebase = async () => {
+    try {
+      // Check internet connectivity
+      const netInfo = await NetInfo.fetch();
+      if (!netInfo.isConnected) {
+        Alert.alert(
+          "No Internet",
+          "Please check your internet connection and try again."
+        );
+        return;
+      }
+
+      Alert.alert(
+        "Sync Data",
+        "This will sync all local data to the server. Continue?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Sync",
+            onPress: async () => {
+              try {
+                // Delete all existing collections for this user from Firestore
+                const snapshot = await firestore().collection("collections").get();
+                const batch = firestore().batch();
+
+                // If admin, delete all. If worker, delete only theirs
+                snapshot.docs.forEach((doc) => {
+                  const data = doc.data();
+                  if (
+                    user.role === "admin" ||
+                    data.workerName === user.displayName
+                  ) {
+                    batch.delete(doc.ref);
+                  }
+                });
+
+                await batch.commit();
+
+                // Add all local collections to Firestore
+                const stored = await AsyncStorage.getItem("@local_collections");
+                const allLocal = stored ? JSON.parse(stored) : [];
+
+                for (const item of allLocal) {
+                  const { localId, ...dataToSync } = item;
+                  await firestore().collection("collections").add(dataToSync);
+                }
+
+                setPendingChanges(false);
+                Alert.alert("Success", "All data synced to server!");
+              } catch (error) {
+                Alert.alert(
+                  "Sync Failed",
+                  "Unable to sync. Please check your internet connection and try again."
+                );
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert("Sync Error", error.message);
+    }
+  };
+
+  const renderItem = ({ item, section }) => {
+    const key = `${section.title}-${item.counterName}`;
+    const isExpanded = expandedCounters[key];
+
+    return (
+      <View style={styles.card}>
+        <TouchableOpacity
+          onPress={() => toggleCounter(key)}
+          style={styles.cardHeader}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.counterName}>{item.counterName}</Text>
+            <Text style={styles.collectionsCount}>
+              {item.collections.length} collection(s)
+            </Text>
+          </View>
+          <Text style={styles.amount}>₹{item.totalAmount}</Text>
+          <MaterialIcon
+            name={isExpanded ? "expand-less" : "expand-more"}
+            size={24}
+            color="#666"
+          />
+        </TouchableOpacity>
+
+        {isExpanded && (
+          <View style={styles.breakdown}>
+            {item.collections.map((col, idx) => (
+              <View key={col.localId || idx} style={styles.breakdownItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.workerName}>{col.workerName}</Text>
+                  <Text style={styles.modeText}>
+                    {col.mode === "offline" ? "Cash" : "Online"}
+                  </Text>
+                </View>
+                <Text style={styles.breakdownAmount}>₹{col.amount}</Text>
+                <TouchableOpacity
+                  onPress={() => openEditModal(col)}
+                  style={styles.iconBtn}
+                >
+                  <MaterialIcon name="edit" size={20} color="#007AFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => deleteItem(col)}
+                  style={styles.iconBtn}
+                >
+                  <MaterialIcon name="delete" size={20} color="#f44336" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderSectionHeader = ({ section }) => {
+    const dateTotal = section.data.reduce((sum, item) => sum + item.totalAmount, 0);
+    return (
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+        <Text style={styles.sectionTotal}>₹{dateTotal}</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {/* Back Button */}
-      <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-        <Icon name="arrow-back" size={24} color="black" />
-      </TouchableOpacity>
+      <View style={styles.topBar}>
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
 
-      <Text style={styles.title}>My Collections</Text>
+        <Text style={styles.title}>
+          {user?.role === "admin" ? "All Collections" : "My Collections"}
+        </Text>
+      </View>
 
-      {collections.length === 0 ? (
-        <Text style={styles.noData}>No collections found.</Text>
+      <View style={styles.actionRow}>
+        {user?.role === "admin" && (
+          <TouchableOpacity
+            style={styles.filterBtn}
+            onPress={() => setDateModalVisible(true)}
+          >
+            <MaterialIcon name="calendar-today" size={18} color="#007AFF" />
+            <Text style={styles.filterText}>
+              {selectedDate || "All Dates"}
+            </Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={styles.syncBtn} onPress={syncToFirebase}>
+          <MaterialIcon name="sync" size={20} color="#fff" />
+          <Text style={styles.syncBtnText}>Sync</Text>
+          {pendingChanges && <View style={styles.pendingDot} />}
+        </TouchableOpacity>
+      </View>
+
+      {/* Date Filter Modal */}
+      <Modal visible={dateModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.calendarModalBox}>
+            <Text style={styles.modalTitle}>Select Date</Text>
+            <ScrollView style={styles.calendarScroll}>
+              <TouchableOpacity
+                style={[
+                  styles.calendarDateItem,
+                  selectedDate === null && styles.selectedCalendarDate,
+                ]}
+                onPress={() => {
+                  setSelectedDate(null);
+                  setDateModalVisible(false);
+                }}
+              >
+                <View style={styles.dateCard}>
+                  <MaterialIcon name="event" size={24} color="#007AFF" />
+                  <Text style={styles.calendarDateText}>All Dates</Text>
+                  {selectedDate === null && (
+                    <MaterialIcon name="check-circle" size={20} color="#2ecc71" />
+                  )}
+                </View>
+              </TouchableOpacity>
+              
+              {availableDates.map((date) => {
+                const dateObj = new Date(date);
+                const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                const monthName = dateObj.toLocaleDateString('en-US', { month: 'short' });
+                const day = dateObj.getDate();
+                const year = dateObj.getFullYear();
+                
+                return (
+                  <TouchableOpacity
+                    key={date}
+                    style={[
+                      styles.calendarDateItem,
+                      selectedDate === date && styles.selectedCalendarDate,
+                    ]}
+                    onPress={() => {
+                      setSelectedDate(date);
+                      setDateModalVisible(false);
+                    }}
+                  >
+                    <View style={styles.dateCard}>
+                      <View style={styles.dateIconBox}>
+                        <Text style={styles.dateDay}>{day}</Text>
+                        <Text style={styles.dateMonth}>{monthName}</Text>
+                      </View>
+                      <View style={styles.dateInfo}>
+                        <Text style={styles.calendarDateText}>{dayName}, {date}</Text>
+                        <Text style={styles.dateYear}>{year}</Text>
+                      </View>
+                      {selectedDate === date && (
+                        <MaterialIcon name="check-circle" size={20} color="#2ecc71" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={() => setDateModalVisible(false)}
+              style={styles.closeBtn}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600" }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal visible={editModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Edit Collection</Text>
+            {editItem && (
+              <ScrollView>
+                <Text style={styles.label}>Counter: {editItem.counterName}</Text>
+                <Text style={styles.label}>Worker: {editItem.workerName}</Text>
+                
+                <Text style={styles.label}>Amount:</Text>
+                <TextInput
+                  value={editAmount}
+                  onChangeText={setEditAmount}
+                  keyboardType="numeric"
+                  style={styles.input}
+                  placeholder="Enter amount"
+                />
+
+                <Text style={styles.label}>Mode:</Text>
+                <View style={styles.modeBox}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeBtn,
+                      editMode === "offline" && styles.activeMode,
+                    ]}
+                    onPress={() => setEditMode("offline")}
+                  >
+                    <Text>Cash</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeBtn,
+                      editMode === "online" && styles.activeMode,
+                    ]}
+                    onPress={() => setEditMode("online")}
+                  >
+                    <Text>Online</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => setEditModalVisible(false)}
+                  >
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.saveEditBtn}
+                    onPress={saveEdit}
+                  >
+                    <Text style={styles.saveBtnText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {sections.length === 0 ? (
+        <View style={styles.noDataContainer}>
+          <MaterialIcon name="inbox" size={64} color="#ccc" />
+          <Text style={styles.noData}>No collections found.</Text>
+          <Text style={styles.noDataHint}>Add collections to see them here</Text>
+        </View>
       ) : (
-        <FlatList
-          data={collections}
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => `${item.counterId}-${item.counterName}`}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          renderSectionHeader={renderSectionHeader}
+          stickySectionHeadersEnabled={false}
         />
       )}
 
@@ -79,18 +491,68 @@ const ViewCollectionsScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#f7f7f7" },
-  title: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginVertical: 10 },
+  container: { flex: 1, paddingTop: 60, paddingHorizontal: 20, backgroundColor: "#f7f7f7" },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  title: { fontSize: 22, fontWeight: "bold", flex: 1, marginLeft: 10 },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    marginBottom: 15,
+    gap: 8,
+  },
   card: {
     backgroundColor: "white",
     padding: 15,
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#e0e0e0",
+    marginHorizontal: 5,
   },
-  counterName: { fontWeight: "bold", fontSize: 16, marginBottom: 5 },
-  noData: { textAlign: "center", marginTop: 50, color: "#777" },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  counterName: { fontWeight: "bold", fontSize: 16 },
+  amount: { fontWeight: "bold", fontSize: 18, color: "#2ecc71", marginRight: 8 },
+  detail: { fontSize: 14, color: "#666", marginBottom: 3 },
+  sectionHeader: {
+    backgroundColor: "#f0f0f0",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
+    marginBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  sectionTitle: { fontWeight: "bold", fontSize: 16 },
+  sectionTotal: { fontWeight: "bold", fontSize: 16, color: "#2ecc71" },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  noData: { 
+    textAlign: "center", 
+    marginTop: 16, 
+    color: "#777",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  noDataHint: {
+    textAlign: "center",
+    marginTop: 8,
+    color: "#999",
+    fontSize: 14,
+  },
   summary: {
     marginTop: 10,
     backgroundColor: "#d4f4d7",
@@ -103,10 +565,254 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   backBtn: {
+    padding: 4,
+  },
+  filterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e3f2fd",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  filterText: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  syncBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2ecc71",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    position: "relative",
+  },
+  syncBtnText: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: "#fff",
+    fontWeight: "600",
+  },
+  pendingDot: {
     position: "absolute",
-    top: 40,
-    left: 20,
-    zIndex: 10,
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ff6b6b",
+  },
+  collectionsCount: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
+  },
+  breakdown: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  breakdownItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  workerName: {
+    fontWeight: "600",
+    fontSize: 14,
+    color: "#333",
+  },
+  modeText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
+  },
+  breakdownAmount: {
+    fontWeight: "bold",
+    fontSize: 16,
+    color: "#2ecc71",
+    marginRight: 8,
+  },
+  iconBtn: {
+    padding: 4,
+    marginLeft: 4,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  modalBox: {
+    backgroundColor: "#fff",
+    margin: 20,
+    padding: 15,
+    borderRadius: 12,
+    maxHeight: "70%",
+  },
+  calendarModalBox: {
+    backgroundColor: "#fff",
+    margin: 20,
+    borderRadius: 12,
+    maxHeight: "80%",
+  },
+  calendarScroll: {
+    maxHeight: 450,
+    paddingHorizontal: 15,
+  },
+  calendarDateItem: {
+    marginVertical: 6,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  selectedCalendarDate: {
+    backgroundColor: "#e3f2fd",
+  },
+  dateCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  dateIconBox: {
+    width: 50,
+    height: 50,
+    backgroundColor: "#007AFF",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  dateDay: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  dateMonth: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  dateInfo: {
+    flex: 1,
+  },
+  calendarDateText: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "600",
+  },
+  dateYear: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  dateItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  selectedDateItem: {
+    backgroundColor: "#e3f2fd",
+  },
+  dateItemText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  selectedDateText: {
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  closeBtn: {
+    backgroundColor: "#007AFF",
+    padding: 14,
+    borderRadius: 8,
+    margin: 15,
+    alignItems: "center",
+  },
+  saveBtn: {
+    backgroundColor: "#2ecc71",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 12,
+    marginBottom: 6,
+    color: "#333",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+  },
+  modeBox: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  modeBtn: {
+    flex: 1,
+    padding: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  activeMode: { backgroundColor: "#d1f0d1" },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  cancelBtn: {
+    flex: 1,
+    backgroundColor: "#007AFF",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancelBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  saveEditBtn: {
+    flex: 1,
+    backgroundColor: "#2ecc71",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  saveBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
   },
 });
 

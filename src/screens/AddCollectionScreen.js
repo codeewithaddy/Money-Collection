@@ -8,6 +8,7 @@ import {
   FlatList,
   Modal,
   StyleSheet,
+  Alert,
 } from "react-native";
 import firestore from "@react-native-firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -22,21 +23,54 @@ export default function AddCollectionScreen({ navigation }) {
   const [mode, setMode] = useState("offline");
   const [modalVisible, setModalVisible] = useState(false);
   const [user, setUser] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const updatePendingCount = async () => {
+    try {
+      const raw = await AsyncStorage.getItem("@current_user");
+      if (!raw) return;
+      
+      const userData = JSON.parse(raw);
+      const pending = await AsyncStorage.getItem("@local_collections");
+      
+      if (pending) {
+        const list = JSON.parse(pending);
+        const userPending = list.filter(c => c.workerName === userData.displayName);
+        setPendingCount(userPending.length);
+      } else {
+        setPendingCount(0);
+      }
+    } catch (error) {
+      console.error("Error updating pending count:", error);
+    }
+  };
 
   useEffect(() => {
     (async () => {
       const raw = await AsyncStorage.getItem("@current_user");
       if (raw) setUser(JSON.parse(raw));
+      await updatePendingCount();
     })();
+    
     const unsubscribe = firestore()
       .collection("counters")
       .onSnapshot((snap) => {
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setCounters(list);
-        setFilteredCounters(list);
+        // Filter out inactive counters
+        const activeCounters = list.filter(c => c.isActive !== false);
+        setCounters(activeCounters);
+        setFilteredCounters(activeCounters);
       });
+    
     return unsubscribe;
   }, []);
+
+  // Update pending count when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", updatePendingCount);
+    return unsubscribe;
+  }, [navigation]);
+
 
   const handleSearch = (text) => {
     setSearchQuery(text);
@@ -49,19 +83,38 @@ export default function AddCollectionScreen({ navigation }) {
     }
   };
 
+
   const saveCollection = async () => {
     if (!selectedCounter || !amount) return alert("Please select counter and amount");
-    await firestore().collection("collections").add({
+    
+    const today = new Date().toISOString().split("T")[0];
+    const collectionData = {
       workerName: user?.displayName || "Unknown",
       counterId: selectedCounter.id,
       counterName: selectedCounter.name,
       amount: Number(amount),
       mode,
-      date: new Date().toISOString().split("T")[0],
-    });
-    alert("Collection saved!");
-    setSelectedCounter(null);
-    setAmount("");
+      date: today,
+      timestamp: new Date().toISOString(),
+      localId: Date.now().toString(), // Unique local ID
+    };
+
+    try {
+      // Always save locally first
+      const stored = await AsyncStorage.getItem("@local_collections");
+      const list = stored ? JSON.parse(stored) : [];
+      list.push(collectionData);
+      await AsyncStorage.setItem("@local_collections", JSON.stringify(list));
+      
+      await updatePendingCount();
+      alert("Collection saved! Go to View Collections to sync.");
+      
+      setSelectedCounter(null);
+      setAmount("");
+      setMode("offline");
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    }
   };
 
   return (
@@ -70,7 +123,14 @@ export default function AddCollectionScreen({ navigation }) {
         <Icon name="arrow-back" size={24} color="#333" />
       </TouchableOpacity>
 
-      <Text style={styles.title}>Add Collection</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Add Collection</Text>
+        {pendingCount > 0 && (
+          <View style={styles.pendingBadge}>
+            <Text style={styles.pendingText}>{pendingCount} pending</Text>
+          </View>
+        )}
+      </View>
 
       <TouchableOpacity
         style={styles.dropdownBtn}
@@ -149,7 +209,15 @@ export default function AddCollectionScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 15 },
+  header: { flexDirection: "row", alignItems: "center", marginBottom: 15, flexWrap: "wrap" },
+  title: { fontSize: 22, fontWeight: "700", marginRight: 10 },
+  pendingBadge: {
+    backgroundColor: "#ffa726",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  pendingText: { color: "#fff", fontSize: 12, fontWeight: "600" },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
