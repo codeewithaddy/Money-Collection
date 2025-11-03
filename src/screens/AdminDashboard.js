@@ -56,6 +56,13 @@ export default function AdminDashboard({ navigation }) {
       <Text>Counter Reports</Text>
     </TouchableOpacity>
 
+    <TouchableOpacity
+      style={styles.actionBtn}
+      onPress={() => navigation.navigate("WorkerReport")}
+    >
+      <Text>Worker Reports</Text>
+    </TouchableOpacity>
+
     <TouchableOpacity style={styles.logout} onPress={logout}>
       <Text style={{ color: "#fff" }}>Logout</Text>
     </TouchableOpacity>

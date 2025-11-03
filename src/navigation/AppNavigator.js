@@ -11,6 +11,7 @@ import AdminManageUsers from "../screens/AdminManageUsers";
 import AddCollectionScreen from "../screens/AddCollectionScreen";
 import ViewCollectionsScreen from "../screens/ViewCollectionsScreen";
 import CounterReportScreen from "../screens/CounterReportScreen";
+import WorkerReportScreen from "../screens/WorkerReportScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +25,7 @@ export default function AppNavigator() {
         <Stack.Screen name="AddCollection" component={AddCollectionScreen} />
         <Stack.Screen name="ViewCollections" component={ViewCollectionsScreen} />
         <Stack.Screen name="CounterReport" component={CounterReportScreen} />
+        <Stack.Screen name="WorkerReport" component={WorkerReportScreen} />
         <Stack.Screen name="AdminManageCounters" component={AdminManageCounters} />
         <Stack.Screen name="AdminManageUsers" component={AdminManageUsers} />
       </Stack.Navigator>
