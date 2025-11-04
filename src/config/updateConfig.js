@@ -1,17 +1,17 @@
 // Update Configuration
 export const UPDATE_CONFIG = {
-  // GitHub repository info (change to your repo)
-  GITHUB_OWNER: 'YOUR_GITHUB_USERNAME',
+  // GitHub repository info
+  GITHUB_OWNER: 'codeewithaddy',
   GITHUB_REPO: 'Money-Collection',
   
   // Current app version (update this when you release new version)
-  CURRENT_VERSION: '4.0.1',
+  CURRENT_VERSION: '3.0.0',
   
   // Update check interval (in milliseconds)
   CHECK_INTERVAL: 24 * 60 * 60 * 1000, // 24 hours
   
   // GitHub API URL for latest release
-  RELEASE_API_URL: 'https://api.github.com/repos/YOUR_GITHUB_USERNAME/Money-Collection/releases/latest',
+  RELEASE_API_URL: 'https://api.github.com/repos/codeewithaddy/Money-Collection/releases/latest',
   
   // Whether to force update (set to true to make update mandatory)
   FORCE_UPDATE: false,
