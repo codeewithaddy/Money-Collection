@@ -11,7 +11,6 @@ import {
   Dimensions,
   PermissionsAndroid,
   Platform,
-  Share,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -19,6 +18,8 @@ import MaterialIcon from "react-native-vector-icons/MaterialIcons";
 import { Calendar } from 'react-native-calendars';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import Pdf from 'react-native-pdf';
+import Share from 'react-native-share';
+import RNFS from 'react-native-fs';
 
 const PDFExportScreen = ({ navigation }) => {
   const [selectedDate, setSelectedDate] = useState(null);
@@ -156,32 +157,29 @@ const PDFExportScreen = ({ navigation }) => {
     }
   };
 
-  const requestStoragePermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const apiLevel = Platform.Version;
-        
-        // Android 13+ (API 33+) doesn't need WRITE_EXTERNAL_STORAGE for app directories
-        if (apiLevel >= 33) {
-          return true; // No permission needed for app-specific directories
-        }
-        
-        // Android 12 and below
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: 'Storage Permission',
-            message: 'App needs access to storage to save PDF files',
-            buttonPositive: 'OK',
-          }
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        console.warn(err);
-        return false;
+  // Get PDF storage directory - NO PERMISSION NEEDED!
+  const getPDFStorageDir = async () => {
+    try {
+      // Use app's external files directory - accessible without permission
+      // Path: /storage/emulated/0/Android/data/com.myapp/files/PDFReports
+      const folderPath = `${RNFS.ExternalDirectoryPath}/PDFReports`;
+      
+      // Check if folder exists
+      const exists = await RNFS.exists(folderPath);
+      
+      if (!exists) {
+        // Create folder
+        await RNFS.mkdir(folderPath);
+        console.log('✅ Created PDF folder:', folderPath);
+      } else {
+        console.log('✅ PDF folder exists:', folderPath);
       }
+      
+      return folderPath;
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      throw error;
     }
-    return true;
   };
 
   const generateHTML = () => {
@@ -455,66 +453,162 @@ const PDFExportScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      // Request permission
-      const hasPermission = await requestStoragePermission();
-      if (!hasPermission) {
-        Alert.alert("Permission Denied", "Storage permission is required to save PDF.");
-        setLoading(false);
-        return;
-      }
+      console.log('🚀 Starting PDF generation...');
+      
+      // Step 1: Get storage directory (no permission needed!)
+      const folderPath = await getPDFStorageDir();
+      
+      // Step 2: Generate unique filename with timestamp
+      const timestamp = Date.now();
+      const fileName = `CollectionReport_${selectedDate}_${timestamp}.pdf`;
+      const finalPath = `${folderPath}/${fileName}`;
+      
+      console.log('📝 Generating PDF:', fileName);
+      console.log('📁 Will save to:', finalPath);
 
+      // Step 3: Generate PDF HTML
       const html = generateHTML();
-      const fileName = `Collection_Report_${selectedDate}.pdf`;
-
-      // Use app-specific directory (no permission needed)
+      
+      // Step 4: Create PDF in temp location first
       const options = {
         html: html,
-        fileName: fileName,
-        directory: Platform.OS === 'android' ? 'Download' : 'Documents',
+        fileName: `temp_${timestamp}`,
+        directory: 'Documents',
         base64: false,
       };
 
+      console.log('⏳ Converting HTML to PDF...');
       const file = await RNHTMLtoPDF.convert(options);
+      console.log('📋 PDF created at temp:', file.filePath);
       
-      setPdfPath(file.filePath);
-      setLoading(false);
+      // Step 5: Move to our folder
+      console.log('📦 Moving to PDFReports folder...');
+      await RNFS.moveFile(file.filePath, finalPath);
+      
+      // Step 6: Verify file exists at final location
+      const exists = await RNFS.exists(finalPath);
+      if (!exists) {
+        throw new Error('PDF file not found at final location');
+      }
+      
+      const stats = await RNFS.stat(finalPath);
+      console.log('✅ PDF saved successfully!');
+      console.log('   Path:', finalPath);
+      console.log('   Size:', (stats.size / 1024).toFixed(2), 'KB');
+      
+      // Step 7: ALSO save to Downloads folder (easy to find!)
+      const downloadsPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+      console.log('📥 Copying to Downloads folder...');
+      
+      try {
+        await RNFS.copyFile(finalPath, downloadsPath);
+        console.log('✅ Also saved to Downloads!');
+        console.log('   Downloads path:', downloadsPath);
+      } catch (copyErr) {
+        console.log('⚠️ Could not copy to Downloads (not critical):', copyErr.message);
+      }
+      
+      // Step 8: Save path for sharing
+      setPdfPath(finalPath);
       
       Alert.alert(
-        "PDF Generated",
-        `PDF saved successfully!`,
-        [
-          { text: "OK" },
-          {
-            text: "View PDF",
-            onPress: () => setPdfModalVisible(true),
-          },
-        ]
+        "PDF Generated!",
+        `✅ Saved to Downloads folder!\n\nFilename: ${fileName}\n\nSize: ${(stats.size / 1024).toFixed(0)} KB\n\nOpen "Downloads" folder in file manager to find it.`,
+        [{ text: "OK" }]
       );
+      
+      setLoading(false);
     } catch (error) {
       console.error("PDF generation error:", error);
-      Alert.alert("Error", "Failed to generate PDF. Please try again.");
+      Alert.alert(
+        "Error",
+        `Failed to generate PDF: ${error.message}\n\nPlease try again or contact support.`
+      );
       setLoading(false);
     }
   };
 
   const sharePDF = async () => {
     if (!pdfPath) {
-      Alert.alert("Error", "No PDF to share. Please generate PDF first.");
+      Alert.alert("No PDF", "Please generate a PDF first.");
       return;
     }
 
     try {
+      console.log('📤 Starting share process...');
+      console.log('   PDF path:', pdfPath);
+      
+      // Verify file exists
+      const exists = await RNFS.exists(pdfPath);
+      if (!exists) {
+        Alert.alert("Error", "PDF file not found. Please generate it again.");
+        setPdfPath(null);
+        return;
+      }
+      
+      // Get file info
+      const fileInfo = await RNFS.stat(pdfPath);
+      console.log('   File size:', (fileInfo.size / 1024).toFixed(2), 'KB');
+      
+      // Copy to cache for sharing (cache is always shareable!)
+      const cachePath = `${RNFS.CachesDirectoryPath}/share_temp.pdf`;
+      console.log('📦 Copying to cache for sharing:', cachePath);
+      
+      // Delete old temp file if exists
+      if (await RNFS.exists(cachePath)) {
+        await RNFS.unlink(cachePath);
+      }
+      
+      // Copy file to cache
+      await RNFS.copyFile(pdfPath, cachePath);
+      console.log('✅ File copied to cache');
+      
+      // Share using file:// URL from cache
       const shareOptions = {
         title: 'Share Collection Report',
         message: `Collection Report for ${selectedDate}`,
-        url: `file://${pdfPath}`,
+        url: `file://${cachePath}`,
         type: 'application/pdf',
+        subject: `Collection Report - ${selectedDate}`,
+        failOnCancel: false,
       };
-
-      await Share.share(shareOptions);
+      
+      console.log('📤 Opening share dialog...');
+      console.log('   Share URL:', shareOptions.url);
+      
+      const result = await Share.open(shareOptions);
+      console.log('✅ Share completed:', result);
+      
+      // Clean up temp file
+      setTimeout(async () => {
+        try {
+          if (await RNFS.exists(cachePath)) {
+            await RNFS.unlink(cachePath);
+            console.log('🗑️ Cleaned up temp file');
+          }
+        } catch (e) {
+          console.log('Cleanup error (ignore):', e.message);
+        }
+      }, 2000);
+      
     } catch (error) {
-      console.error("Share error:", error);
-      Alert.alert("Error", "Failed to share PDF.");
+      // User cancelled?
+      if (error && error.message) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes('cancel') || msg.includes('user did not share')) {
+          console.log('ℹ️ User cancelled share');
+          return;
+        }
+      }
+      
+      // Real error
+      console.error('❌ Share failed:', error);
+      console.error('   Error message:', error.message);
+      
+      Alert.alert(
+        "Share Failed",
+        `Could not share PDF. ${error.message || 'Please try again.'}`
+      );
     }
   };
 
@@ -636,13 +730,23 @@ const PDFExportScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           {pdfPath && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.viewBtn]}
-              onPress={() => setPdfModalVisible(true)}
-            >
-              <MaterialIcon name="visibility" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>View PDF</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.shareBtn]}
+                onPress={sharePDF}
+              >
+                <MaterialIcon name="share" size={20} color="#fff" />
+                <Text style={styles.actionBtnText}>Share PDF</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.viewBtn]}
+                onPress={() => setPdfModalVisible(true)}
+              >
+                <MaterialIcon name="visibility" size={20} color="#fff" />
+                <Text style={styles.actionBtnText}>View PDF</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       )}
@@ -726,9 +830,11 @@ const PDFExportScreen = ({ navigation }) => {
             </View>
           </View>
           
-          {pdfPath && (
+          {pdfPath ? (
             <Pdf
-              source={{ uri: `file://${pdfPath}` }}
+              source={{ 
+                uri: pdfPath.startsWith('file://') ? pdfPath : `file://${pdfPath}` 
+              }}
               style={styles.pdf}
               onLoadComplete={(numberOfPages) => {
                 console.log(`PDF loaded: ${numberOfPages} pages`);
@@ -738,6 +844,11 @@ const PDFExportScreen = ({ navigation }) => {
                 Alert.alert("Error", "Failed to load PDF");
               }}
             />
+          ) : (
+            <View style={styles.pdfPlaceholder}>
+              <MaterialIcon name="picture-as-pdf" size={64} color="#ccc" />
+              <Text style={styles.pdfPlaceholderText}>No PDF to display</Text>
+            </View>
           )}
         </View>
       </Modal>
@@ -902,23 +1013,29 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: "row",
-    gap: 10,
-    paddingVertical: 16,
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 12,
+    marginBottom: 20,
+    paddingHorizontal: 8,
   },
   actionBtn: {
-    flex: 1,
+    minWidth: 110,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 14,
+    padding: 12,
     borderRadius: 10,
-    gap: 8,
+    gap: 6,
   },
   generateBtn: {
     backgroundColor: "#e91e63",
   },
   viewBtn: {
     backgroundColor: "#2196f3",
+  },
+  shareBtn: {
+    backgroundColor: "#4caf50",
   },
   actionBtnText: {
     color: "#fff",
@@ -1004,6 +1121,17 @@ const styles = StyleSheet.create({
     flex: 1,
     width: Dimensions.get('window').width,
     backgroundColor: "#f0f0f0",
+  },
+  pdfPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  pdfPlaceholderText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#999",
   },
 });
 

@@ -10,9 +10,12 @@ import {
   PermissionsAndroid,
   Platform,
   ActivityIndicator,
+  NativeModules,
 } from 'react-native';
 import RNFS from 'react-native-fs';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+
+const { InstallApk } = NativeModules;
 
 const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
   const [downloading, setDownloading] = useState(false);
@@ -72,18 +75,40 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
     return true;
   };
 
+  const installAPK = async (filePath) => {
+    try {
+      if (Platform.OS === 'android') {
+        // Use Android's intent to install APK
+        await Linking.openURL(`file://${filePath}`);
+      }
+    } catch (error) {
+      console.error('Install error:', error);
+      // Fallback: try opening file manager
+      Alert.alert(
+        'Install APK',
+        'Please open the downloaded APK from your Downloads folder to install.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const downloadAndInstall = async () => {
     try {
       setDownloading(true);
+      setDownloadProgress(0);
 
       // Request permissions
       const hasPermission = await requestInstallPermission();
       if (!hasPermission) {
         setDownloading(false);
+        Alert.alert('Permission Required', 'Storage permission is needed to download the update.');
         return;
       }
 
       const downloadDest = `${RNFS.DownloadDirectoryPath}/MoneyCollection_${updateInfo.version}.apk`;
+
+      console.log('Downloading APK to:', downloadDest);
+      console.log('Download URL:', updateInfo.downloadUrl);
 
       // Download the APK
       const downloadResult = await RNFS.downloadFile({
@@ -96,29 +121,52 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
         progressInterval: 500,
       }).promise;
 
+      console.log('Download result:', downloadResult);
+
       if (downloadResult.statusCode === 200) {
-        // Install the APK
-        await RNFS.installApk(downloadDest);
+        // Verify file exists
+        const fileExists = await RNFS.exists(downloadDest);
+        console.log('File exists:', fileExists);
         
-        setDownloading(false);
-        if (onUpdateComplete) {
-          onUpdateComplete();
+        if (fileExists) {
+          const stats = await RNFS.stat(downloadDest);
+          console.log('File size:', stats.size);
+          
+          setDownloading(false);
+          
+          Alert.alert(
+            'Download Complete',
+            'The update has been downloaded. Tap OK to install.',
+            [
+              {
+                text: 'OK',
+                onPress: async () => {
+                  await installAPK(downloadDest);
+                  if (onUpdateComplete) {
+                    onUpdateComplete();
+                  }
+                },
+              },
+            ]
+          );
+        } else {
+          throw new Error('File not found after download');
         }
       } else {
-        throw new Error('Download failed');
+        throw new Error(`Download failed with status: ${downloadResult.statusCode}`);
       }
     } catch (error) {
       console.error('Download error:', error);
       setDownloading(false);
       Alert.alert(
         'Download Failed',
-        'Failed to download the update. Please try again or download manually from GitHub.',
+        `Failed to download the update: ${error.message}\n\nYou can download manually from GitHub.`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Open GitHub',
             onPress: () => {
-              Linking.openURL(`https://github.com/${updateInfo.githubRepo}/releases/latest`);
+              Linking.openURL('https://github.com/codeewithaddy/Money-Collection/releases/latest');
             },
           },
         ]

@@ -168,7 +168,7 @@ adb install -r ~/Desktop/Money_Collection_v3.0_VandanaAgencies_2025-11-04.apk
 ### **Test These Critical Features:**
 
 1. **Login:**
-   - [ ] Super admin (anil/anil123)
+   - [ ] Super admin
    - [ ] Worker login
    - [ ] Logo displays correctly
    - [ ] Dark theme working
@@ -373,9 +373,7 @@ echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
 ### **User Credentials to Share:**
 ```
-Super Admin:
-Username: anil
-Password: anil123
+
 
 Workers:
 [Create via Manage Users in app]

@@ -50,31 +50,46 @@ export default function App() {
   };
 
   const handleAppStateChange = async (nextAppState) => {
-    // App going to background
-    if (appState.current.match(/active/) && nextAppState.match(/inactive|background/)) {
-      // Store the time when app went to background
-      await AsyncStorage.setItem('@app_background_time', Date.now().toString());
-    }
+    try {
+      // App going to background
+      if (appState.current.match(/active/) && nextAppState.match(/inactive|background/)) {
+        // Store the time when app went to background
+        await AsyncStorage.setItem('@app_background_time', Date.now().toString());
+      }
 
-    // App coming to foreground - just log, don't modify timestamp
-    // PIN check will be handled by AppNavigator
-    if (appState.current.match(/inactive|background/) && nextAppState === "active") {
-      console.log('App came to foreground');
-    }
+      // App coming to foreground - just log, don't modify timestamp
+      // PIN check will be handled by AppNavigator
+      if (appState.current.match(/inactive|background/) && nextAppState === "active") {
+        console.log('App came to foreground');
+      }
 
-    appState.current = nextAppState;
+      appState.current = nextAppState;
+    } catch (error) {
+      console.log('AppState change error (non-critical):', error.message);
+      // Non-critical error, just log it
+      appState.current = nextAppState;
+    }
   };
 
   const handleDismissUpdate = async () => {
-    if (updateInfo && !updateInfo.required) {
-      await UpdateChecker.dismissUpdate(updateInfo.version);
+    try {
+      if (updateInfo && !updateInfo.required) {
+        await UpdateChecker.dismissUpdate(updateInfo.version);
+      }
+      setShowUpdateModal(false);
+    } catch (error) {
+      console.log('Error dismissing update:', error.message);
+      setShowUpdateModal(false); // Close anyway
     }
-    setShowUpdateModal(false);
   };
 
   const handleUpdateComplete = () => {
-    setShowUpdateModal(false);
-    // App will restart after APK installation
+    try {
+      setShowUpdateModal(false);
+      // App will restart after APK installation
+    } catch (error) {
+      console.log('Error in update complete:', error.message);
+    }
   };
 
   return (

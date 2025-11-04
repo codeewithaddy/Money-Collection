@@ -5,7 +5,7 @@ export const UPDATE_CONFIG = {
   GITHUB_REPO: 'Money-Collection',
   
   // Current app version (update this when you release new version)
-  CURRENT_VERSION: '3.0.0',
+  CURRENT_VERSION: '4.0.0',
   
   // Update check interval (in milliseconds)
   CHECK_INTERVAL: 24 * 60 * 60 * 1000, // 24 hours
@@ -17,7 +17,7 @@ export const UPDATE_CONFIG = {
   FORCE_UPDATE: false,
   
   // Minimum required version (users below this MUST update)
-  MIN_REQUIRED_VERSION: '3.0.0',
+  MIN_REQUIRED_VERSION: '4.0.0',
 };
 
 // Helper function to compare versions
