@@ -31,32 +31,58 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const requestInstallPermission = async () => {
+  const checkInstallPermission = async () => {
     if (Platform.OS === 'android') {
       try {
         if (Platform.Version >= 26) {
-          // Android 8.0+ needs INSTALL_PACKAGES permission
-          const canInstall = await RNFS.canInstallApk();
+          // Android 8.0+ needs REQUEST_INSTALL_PACKAGES permission
+          const canInstall = await InstallApk.canInstallPackages();
           if (!canInstall) {
-            Alert.alert(
-              'Permission Required',
-              'Please allow installation from unknown sources to install the update.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Open Settings',
-                  onPress: () => {
-                    // This requires additional native module setup
-                    Alert.alert('Manual Action', 'Please enable "Install unknown apps" in Settings for this app.');
+            return new Promise((resolve) => {
+              Alert.alert(
+                'Permission Required',
+                'To install updates, you need to allow "Install unknown apps" for this app. Would you like to open settings?',
+                [
+                  { 
+                    text: 'Cancel', 
+                    style: 'cancel',
+                    onPress: () => resolve(false)
                   },
-                },
-              ]
-            );
-            return false;
+                  {
+                    text: 'Open Settings',
+                    onPress: async () => {
+                      try {
+                        await InstallApk.openInstallSettings();
+                        // Give user time to enable the permission
+                        setTimeout(async () => {
+                          const stillCanInstall = await InstallApk.canInstallPackages();
+                          resolve(stillCanInstall);
+                        }, 1000);
+                      } catch (error) {
+                        console.error('Failed to open settings:', error);
+                        resolve(false);
+                      }
+                    },
+                  },
+                ]
+              );
+            });
           }
+          return true;
         }
+        return true;
+      } catch (err) {
+        console.error('Permission check error:', err);
+        return false;
+      }
+    }
+    return true;
+  };
 
-        // Request storage permission
+  const requestStoragePermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        // Request storage permission for download
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
@@ -78,15 +104,28 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
   const installAPK = async (filePath) => {
     try {
       if (Platform.OS === 'android') {
-        // Use Android's intent to install APK
-        await Linking.openURL(`file://${filePath}`);
+        console.log('Installing APK from:', filePath);
+        
+        // Check install permission before attempting installation
+        const hasPermission = await checkInstallPermission();
+        if (!hasPermission) {
+          Alert.alert(
+            'Permission Denied',
+            'Installation permission is required to install the update. Please enable it in settings and try again.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+
+        // Use native module to install APK
+        await InstallApk.installApk(filePath);
+        console.log('Installation intent launched');
       }
     } catch (error) {
       console.error('Install error:', error);
-      // Fallback: try opening file manager
       Alert.alert(
-        'Install APK',
-        'Please open the downloaded APK from your Downloads folder to install.',
+        'Installation Error',
+        `Failed to install the update: ${error.message}\n\nPlease install manually from: ${filePath}`,
         [{ text: 'OK' }]
       );
     }
@@ -97,9 +136,9 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
       setDownloading(true);
       setDownloadProgress(0);
 
-      // Request permissions
-      const hasPermission = await requestInstallPermission();
-      if (!hasPermission) {
+      // Request storage permission first
+      const hasStoragePermission = await requestStoragePermission();
+      if (!hasStoragePermission) {
         setDownloading(false);
         Alert.alert('Permission Required', 'Storage permission is needed to download the update.');
         return;
@@ -107,47 +146,51 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
 
       const downloadDest = `${RNFS.DownloadDirectoryPath}/MoneyCollection_${updateInfo.version}.apk`;
 
-      console.log('Downloading APK to:', downloadDest);
+      console.log('Starting download...');
       console.log('Download URL:', updateInfo.downloadUrl);
+      console.log('Download destination:', downloadDest);
 
-      // Download the APK
+      // Download the APK with progress tracking
       const downloadResult = await RNFS.downloadFile({
         fromUrl: updateInfo.downloadUrl,
         toFile: downloadDest,
         progress: (res) => {
           const progress = (res.bytesWritten / res.contentLength) * 100;
           setDownloadProgress(Math.round(progress));
+          console.log(`Download progress: ${Math.round(progress)}%`);
         },
         progressInterval: 500,
       }).promise;
 
-      console.log('Download result:', downloadResult);
+      console.log('Download completed with status:', downloadResult.statusCode);
 
       if (downloadResult.statusCode === 200) {
-        // Verify file exists
+        // Verify file exists and check size
         const fileExists = await RNFS.exists(downloadDest);
         console.log('File exists:', fileExists);
         
         if (fileExists) {
           const stats = await RNFS.stat(downloadDest);
-          console.log('File size:', stats.size);
+          console.log('Downloaded file size:', stats.size, 'bytes');
           
           setDownloading(false);
           
           Alert.alert(
-            'Download Complete',
-            'The update has been downloaded. Tap OK to install.',
+            'Download Complete! ✅',
+            `Update downloaded successfully (${formatBytes(stats.size)})\n\nTap "Install" to update the app. The installer will open automatically.`,
             [
               {
-                text: 'OK',
+                text: 'Install',
                 onPress: async () => {
+                  console.log('User tapped Install, starting installation...');
                   await installAPK(downloadDest);
                   if (onUpdateComplete) {
                     onUpdateComplete();
                   }
                 },
               },
-            ]
+            ],
+            { cancelable: false }
           );
         } else {
           throw new Error('File not found after download');
