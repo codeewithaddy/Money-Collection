@@ -9,6 +9,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -143,92 +144,190 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.companyName}>Vandana Agencies</Text>
-        <Text style={styles.title}>Money Collection</Text>
-        <Text style={styles.sub}>Login to continue</Text>
-
-        <TextInput
-          placeholder="Name"
-          placeholderTextColor="#999"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          style={styles.input}
-        />
-        
-        <View style={styles.passwordContainer}>
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#999"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            style={styles.passwordInput}
-          />
-          <TouchableOpacity
-            onPress={() => setShowPassword(!showPassword)}
-            style={styles.eyeIcon}
-          >
-            <Icon
-              name={showPassword ? "eye-off-outline" : "eye-outline"}
-              size={24}
-              color="#666"
+      <View style={styles.content}>
+        {/* Logo Section */}
+        <View style={styles.logoContainer}>
+          <View style={styles.logoCircle}>
+            <Image 
+              source={require('../../assets/login-icon.jpeg')}
+              style={styles.logoImage}
+              resizeMode="contain"
             />
-          </TouchableOpacity>
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Login</Text>
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeText}>Welcome back!</Text>
+          <Text style={styles.companyName}>
+            <Text style={styles.companyNameV}>V</Text>andana{' '}
+            <Text style={styles.companyNameA}>A</Text>gencies
+          </Text>
+          <Text style={styles.subtitle}>Login to your account</Text>
+        </View>
+
+        {/* Input Fields */}
+        <View style={styles.inputSection}>
+          <View style={styles.inputWrapper}>
+            <Icon name="person-outline" size={20} color="#6DD5B4" style={styles.inputIcon} />
+            <TextInput
+              placeholder="Username"
+              placeholderTextColor="#8A8A9E"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              style={styles.input}
+            />
+          </View>
+          
+          <View style={styles.inputWrapper}>
+            <Icon name="lock-closed-outline" size={20} color="#6DD5B4" style={styles.inputIcon} />
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#8A8A9E"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              style={styles.input}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeIcon}
+            >
+              <Icon
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color="#B0B0C8"
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Sign In Button */}
+        <TouchableOpacity style={styles.signInButton} onPress={handleLogin}>
+          <Text style={styles.signInText}>Sign in</Text>
         </TouchableOpacity>
 
-        <Text style={styles.hint}>Enter your credentials to continue</Text>
+        {/* Footer */}
+        <Text style={styles.footerText}>Money Collection App v3.0</Text>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f2f7ff" },
-  card: { width: "90%", padding: 20, backgroundColor: "#fff", borderRadius: 12, elevation: 4 },
-  companyName: { 
-    fontSize: 28, 
-    fontWeight: "900", 
-    color: "#2f6ce6", 
-    textAlign: "center",
+  container: {
+    flex: 1,
+    backgroundColor: "#4A4560",
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 30,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginTop: 40,
+    marginBottom: 40,
+  },
+  logoCircle: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#6DD5B4",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 12,
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
+  },
+  welcomeSection: {
+    alignItems: "center",
+    marginBottom: 40,
+  },
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#FFFFFF",
     marginBottom: 8,
-    letterSpacing: 1,
   },
-  title: { fontSize: 18, fontWeight: "600", marginBottom: 6, textAlign: "center", color: "#333" },
-  sub: { fontSize: 13, color: "#555", marginBottom: 16, textAlign: "center" },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    fontSize: 16,
-    color: "#000",
+  companyName: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
+    letterSpacing: 1.5,
   },
-  passwordContainer: {
+  companyNameV: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#6DD5B4",
+  },
+  companyNameA: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#6DD5B4",
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#B0B0C8",
+    marginTop: 4,
+  },
+  inputSection: {
+    marginBottom: 30,
+  },
+  inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#3E3D52",
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 4,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    marginBottom: 12,
-    paddingRight: 12,
+    borderColor: "#525174",
   },
-  passwordInput: {
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
     flex: 1,
-    padding: 12,
-    fontSize: 16,
-    color: "#000",
+    paddingVertical: 16,
+    fontSize: 15,
+    color: "#FFFFFF",
   },
   eyeIcon: {
-    padding: 4,
+    padding: 8,
   },
-  button: { backgroundColor: "#2f6ce6", padding: 14, borderRadius: 8, alignItems: "center", marginTop: 6 },
-  buttonText: { color: "#fff", fontWeight: "700" },
-  hint: { marginTop: 12, color: "#777", textAlign: "center" },
+  signInButton: {
+    backgroundColor: "#6DD5B4",
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: "center",
+    marginBottom: 20,
+    shadowColor: "#6DD5B4",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  signInText: {
+    color: "#2A2A3E",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  footerText: {
+    textAlign: "center",
+    color: "#8A8A9E",
+    fontSize: 12,
+    marginTop: 20,
+  },
 });

@@ -26,19 +26,19 @@ function CollectionsTab({ navigation }) {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#e8f5e9' }]}
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
           onPress={() => navigation.navigate('AddCollection')}
         >
-          <MaterialIcon name="add-circle" size={48} color="#2ecc71" />
+          <MaterialIcon name="add-circle" size={48} color="#6DD5B4" />
           <Text style={styles.cardTitle}>Add Collection</Text>
           <Text style={styles.cardSub}>Record new payment</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#e3f2fd' }]}
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
           onPress={() => navigation.navigate('ViewCollections')}
         >
-          <MaterialIcon name="visibility" size={48} color="#2196f3" />
+          <MaterialIcon name="visibility" size={48} color="#6DD5B4" />
           <Text style={styles.cardTitle}>View Collections</Text>
           <Text style={styles.cardSub}>Browse all records</Text>
         </TouchableOpacity>
@@ -57,28 +57,28 @@ function ReportsTab({ navigation }) {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#fff3e0' }]}
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
           onPress={() => navigation.navigate('CounterReport')}
         >
-          <MaterialIcon name="people" size={48} color="#ff9800" />
+          <MaterialIcon name="people" size={48} color="#FFB84D" />
           <Text style={styles.cardTitle}>Counter Reports</Text>
           <Text style={styles.cardSub}>View by counter</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#f3e5f5' }]}
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
           onPress={() => navigation.navigate('WorkerReport')}
         >
-          <MaterialIcon name="person" size={48} color="#9c27b0" />
+          <MaterialIcon name="person" size={48} color="#A78BFA" />
           <Text style={styles.cardTitle}>Worker Reports</Text>
           <Text style={styles.cardSub}>View by worker</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#fce4ec' }]}
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
           onPress={() => navigation.navigate('PDFExport')}
         >
-          <MaterialIcon name="picture-as-pdf" size={48} color="#e91e63" />
+          <MaterialIcon name="picture-as-pdf" size={48} color="#FB7185" />
           <Text style={styles.cardTitle}>PDF Export</Text>
           <Text style={styles.cardSub}>Generate reports</Text>
         </TouchableOpacity>
@@ -102,28 +102,28 @@ function SettingsTab({ navigation }) {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#e0f2f1' }]}
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
           onPress={() => navigation.navigate('AdminManageCounters')}
         >
-          <MaterialIcon name="store" size={48} color="#009688" />
+          <MaterialIcon name="store" size={48} color="#60D4A9" />
           <Text style={styles.cardTitle}>Manage Counters</Text>
           <Text style={styles.cardSub}>Add/Edit counters</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#e8eaf6' }]}
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
           onPress={() => navigation.navigate('AdminManageUsers')}
         >
-          <MaterialIcon name="supervisor-account" size={48} color="#3f51b5" />
+          <MaterialIcon name="supervisor-account" size={48} color="#7DD3FC" />
           <Text style={styles.cardTitle}>Manage Users</Text>
           <Text style={styles.cardSub}>Add/Edit workers</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#ffebee' }]}
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
           onPress={handleLogout}
         >
-          <MaterialIcon name="logout" size={48} color="#f44336" />
+          <MaterialIcon name="logout" size={48} color="#F87171" />
           <Text style={styles.cardTitle}>Logout</Text>
           <Text style={styles.cardSub}>Sign out</Text>
         </TouchableOpacity>
@@ -137,18 +137,19 @@ export default function AdminTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2f6ce6',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#6DD5B4',
+        tabBarInactiveTintColor: '#8A8A9E',
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 65,
+          paddingBottom: 10,
+          paddingTop: 10,
           borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
-          elevation: 8,
+          borderTopColor: '#525174',
+          backgroundColor: '#3E3D52',
+          elevation: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
         },
       }}
@@ -187,40 +188,48 @@ export default function AdminTabs() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#4A4560',
   },
   header: {
-    backgroundColor: '#2f6ce6',
+    backgroundColor: '#3E3D52',
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 24,
     paddingHorizontal: 20,
-    elevation: 4,
+    elevation: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#525174',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FFFFFF',
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: 20,
   },
   actionCard: {
     padding: 24,
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 16,
     alignItems: 'center',
-    elevation: 3,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: '#525174',
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 12,
-    color: '#333',
+    color: '#FFFFFF',
   },
   cardSub: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    fontSize: 13,
+    color: '#B0B0C8',
+    marginTop: 6,
   },
 });
