@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions for data validation
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+    
+    function isValidAmount(amount) {
+      return amount is number && amount > 0;
+    }
+    
+    function isValidMode(mode) {
+      return mode in ['online', 'offline'];
+    }
+    
+    function isValidDate(date) {
+      return date is string && date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+    
+    // Config collection - Read only (super admin data)
+    match /config/{document} {
+      allow read: if true; // Needed for login
+      allow write: if false; // Only via Firebase Console
+    }
+    
+    // Counters collection
+    match /counters/{counterId} {
+      // Anyone can read (needed for dropdowns)
+      allow read: if true;
+      
+      // Create/Update: Must have valid fields
+      allow create: if request.resource.data.keys().hasAll(['name', 'isActive']) &&
+                       request.resource.data.name is string &&
+                       request.resource.data.name.size() > 0 &&
+                       request.resource.data.isActive is bool;
+      
+      allow update: if request.resource.data.keys().hasAll(['name', 'isActive']) &&
+                       request.resource.data.name is string &&
+                       request.resource.data.name.size() > 0 &&
+                       request.resource.data.isActive is bool;
+      
+      // Delete: Allow (soft delete via isActive preferred)
+      allow delete: if true;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone can read (needed for login verification)
+      allow read: if true;
+      
+      // Create: Must have valid user fields
+      allow create: if hasRequiredFields(request.resource.data, ['password', 'displayName', 'role', 'isActive']) &&
+                       request.resource.data.password is string &&
+                       request.resource.data.password.size() > 0 &&
+                       request.resource.data.displayName is string &&
+                       request.resource.data.displayName.size() > 0 &&
+                       request.resource.data.role in ['admin', 'worker'] &&
+                       request.resource.data.isActive is bool;
+      
+      // Update: Must maintain required fields
+      allow update: if hasRequiredFields(request.resource.data, ['password', 'displayName', 'role', 'isActive']) &&
+                       request.resource.data.password is string &&
+                       request.resource.data.password.size() > 0 &&
+                       request.resource.data.displayName is string &&
+                       request.resource.data.displayName.size() > 0 &&
+                       request.resource.data.role in ['admin', 'worker'] &&
+                       request.resource.data.isActive is bool;
+      
+      // Delete: Allow
+      allow delete: if true;
+    }
+    
+    // Collections (money collection data)
+    match /collections/{collectionId} {
+      // Anyone can read (filtered in app by role)
+      allow read: if true;
+      
+      // Create: Must have all required fields with valid types
+      allow create: if hasRequiredFields(request.resource.data, 
+                         ['workerName', 'counterName', 'counterId', 'amount', 'mode', 'date', 'timestamp']) &&
+                       request.resource.data.workerName is string &&
+                       request.resource.data.workerName.size() > 0 &&
+                       request.resource.data.counterName is string &&
+                       request.resource.data.counterName.size() > 0 &&
+                       request.resource.data.counterId is string &&
+                       isValidAmount(request.resource.data.amount) &&
+                       isValidMode(request.resource.data.mode) &&
+                       isValidDate(request.resource.data.date) &&
+                       request.resource.data.timestamp is string;
+      
+      // Update: Must maintain required fields and types
+      allow update: if hasRequiredFields(request.resource.data, 
+                         ['workerName', 'counterName', 'counterId', 'amount', 'mode', 'date', 'timestamp']) &&
+                       request.resource.data.workerName is string &&
+                       request.resource.data.workerName.size() > 0 &&
+                       request.resource.data.counterName is string &&
+                       request.resource.data.counterName.size() > 0 &&
+                       request.resource.data.counterId is string &&
+                       isValidAmount(request.resource.data.amount) &&
+                       isValidMode(request.resource.data.mode) &&
+                       isValidDate(request.resource.data.date) &&
+                       request.resource.data.timestamp is string;
+      
+      // Delete: Allow (controlled in app)
+      allow delete: if true;
+    }
+    
+    // Deny all other collections/documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -99,13 +99,28 @@ export default function AddCollectionScreen({ navigation }) {
 
 
   const saveCollection = async () => {
-    if (!selectedCounter || !amount) return alert("Please select counter and amount");
+    // Validation
+    if (!selectedCounter) {
+      Alert.alert("Validation", "Please select a counter");
+      return;
+    }
+    
+    if (!amount || amount.trim() === "") {
+      Alert.alert("Validation", "Please enter an amount");
+      return;
+    }
+    
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      Alert.alert("Validation", "Please enter a valid amount greater than 0");
+      return;
+    }
     
     const collectionData = {
       workerName: user?.displayName || "Unknown",
       counterId: selectedCounter.id,
       counterName: selectedCounter.name,
-      amount: Number(amount),
+      amount: numAmount,
       mode,
       date: selectedDate, // Use selected date instead of today
       timestamp: new Date().toISOString(),
