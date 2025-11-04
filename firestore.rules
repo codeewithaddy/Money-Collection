@@ -107,6 +107,39 @@ service cloud.firestore {
       allow delete: if true;
     }
     
+    // OnShop Collections (direct shop sales)
+    match /onShopCollections/{onShopId} {
+      // Anyone can read (filtered in app by role)
+      allow read: if true;
+      
+      // Create: Must have all required fields with valid types
+      allow create: if hasRequiredFields(request.resource.data, 
+                         ['customerName', 'amount', 'mode', 'receivedBy', 'date', 'timestamp']) &&
+                       request.resource.data.customerName is string &&
+                       request.resource.data.customerName.size() > 0 &&
+                       isValidAmount(request.resource.data.amount) &&
+                       isValidMode(request.resource.data.mode) &&
+                       request.resource.data.receivedBy is string &&
+                       request.resource.data.receivedBy.size() > 0 &&
+                       isValidDate(request.resource.data.date) &&
+                       request.resource.data.timestamp is string;
+      
+      // Update: Must maintain required fields and types
+      allow update: if hasRequiredFields(request.resource.data, 
+                         ['customerName', 'amount', 'mode', 'receivedBy', 'date', 'timestamp']) &&
+                       request.resource.data.customerName is string &&
+                       request.resource.data.customerName.size() > 0 &&
+                       isValidAmount(request.resource.data.amount) &&
+                       isValidMode(request.resource.data.mode) &&
+                       request.resource.data.receivedBy is string &&
+                       request.resource.data.receivedBy.size() > 0 &&
+                       isValidDate(request.resource.data.date) &&
+                       request.resource.data.timestamp is string;
+      
+      // Delete: Allow (controlled in app)
+      allow delete: if true;
+    }
+    
     // Deny all other collections/documents
     match /{document=**} {
       allow read, write: if false;

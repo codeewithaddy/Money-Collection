@@ -121,6 +121,9 @@ export default function LoginScreen({ navigation }) {
         })
       );
 
+      // Set initial background time for PIN system
+      await AsyncStorage.setItem('@app_background_time', Date.now().toString());
+
       // Navigate based on role
       if (userData.role === "admin") {
         navigation.replace("Admin");

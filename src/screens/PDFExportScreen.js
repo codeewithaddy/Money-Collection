@@ -11,6 +11,7 @@ import {
   Dimensions,
   PermissionsAndroid,
   Platform,
+  Share,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -188,195 +189,256 @@ const PDFExportScreen = ({ navigation }) => {
 
     const { date, counters, grandTotal, totalCash, totalOnline, collectionsCount } = reportData;
 
+    // Calculate worker totals
+    const workerTotals = {};
+    counters.forEach(counter => {
+      counter.users.forEach(user => {
+        if (!workerTotals[user.workerName]) {
+          workerTotals[user.workerName] = 0;
+        }
+        workerTotals[user.workerName] += user.total;
+      });
+    });
+
+    // Determine if landscape is needed
+    const totalEntries = counters.reduce((sum, c) => sum + c.users.length, 0);
+    const isLandscape = totalEntries > 15;
+
     let html = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
         <style>
+          @page {
+            size: A4 ${isLandscape ? 'landscape' : 'portrait'};
+            margin: 15mm;
+          }
+          
           body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            font-size: 12px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10px;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
           }
-          h1 {
+          
+          .header {
             text-align: center;
-            color: #007AFF;
-            font-size: 24px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
           }
-          .date {
-            text-align: center;
+          
+          .header h1 {
+            margin: 0 0 5px 0;
             font-size: 18px;
-            color: #666;
-            margin-bottom: 20px;
+            font-weight: bold;
           }
-          .summary {
-            background: #f0f0f0;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+          
+          .header .date {
+            font-size: 12px;
+            color: #333;
           }
-          .summary-row {
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            page-break-inside: auto;
+          }
+          
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+          
+          th, td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            text-align: left;
+          }
+          
+          th {
+            background-color: #e0e0e0;
+            font-weight: bold;
+            font-size: 10px;
+            text-align: center;
+          }
+          
+          td {
+            font-size: 9px;
+          }
+          
+          .text-right {
+            text-align: right;
+          }
+          
+          .text-center {
+            text-align: center;
+          }
+          
+          .counter-row {
+            background-color: #f5f5f5;
+            font-weight: bold;
+          }
+          
+          .breakdown-row {
+            background-color: #fafafa;
+            font-size: 8px;
+          }
+          
+          .total-row {
+            background-color: #d0d0d0;
+            font-weight: bold;
+            font-size: 11px;
+          }
+          
+          .summary-box {
+            background-color: #f0f0f0;
+            border: 2px solid #000;
+            padding: 10px;
+            margin-top: 15px;
+            page-break-inside: avoid;
+          }
+          
+          .summary-title {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #666;
+            padding-bottom: 5px;
+          }
+          
+          .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          
+          .summary-item {
             display: flex;
             justify-content: space-between;
-            margin: 8px 0;
-            font-size: 14px;
+            padding: 4px 0;
           }
+          
           .summary-label {
             font-weight: bold;
           }
+          
           .summary-value {
-            color: #2ecc71;
             font-weight: bold;
+            color: #000;
           }
-          .counter-section {
-            margin-bottom: 30px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            break-inside: avoid;
-          }
-          .counter-header {
-            background: #007AFF;
-            color: white;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 16px;
-            font-weight: bold;
-          }
-          .counter-total {
-            float: right;
-          }
-          .breakdown {
-            background: #f9f9f9;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-          }
-          .breakdown-title {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 14px;
-          }
-          .breakdown-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            padding: 5px 10px;
-          }
-          .cash {
-            color: #ff9800;
-          }
-          .online {
-            color: #2196f3;
-          }
-          .users-section {
-            margin-top: 10px;
-          }
-          .user-item {
-            background: white;
-            padding: 10px;
-            border-left: 3px solid #2ecc71;
-            margin-bottom: 8px;
-            border-radius: 4px;
-          }
-          .user-name {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-          }
-          .user-breakdown {
-            font-size: 12px;
-            color: #666;
-          }
+          
           .footer {
+            margin-top: 15px;
             text-align: center;
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 2px solid #ddd;
-            color: #999;
-            font-size: 11px;
+            font-size: 8px;
+            color: #666;
+            page-break-inside: avoid;
           }
         </style>
       </head>
       <body>
-        <h1>📊 Collection Report</h1>
-        <div class="date">Date: ${date}</div>
-        
-        <div class="summary">
-          <div class="summary-row">
-            <span class="summary-label">Grand Total:</span>
-            <span class="summary-value">₹${grandTotal.toLocaleString()}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Cash:</span>
-            <span class="summary-value cash">₹${totalCash.toLocaleString()}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Online:</span>
-            <span class="summary-value online">₹${totalOnline.toLocaleString()}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Total Collections:</span>
-            <span class="summary-value">${collectionsCount}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Total Counters:</span>
-            <span class="summary-value">${counters.length}</span>
-          </div>
+        <div class="header">
+          <h1>COLLECTION REPORT</h1>
+          <div class="date">Date: ${date}</div>
         </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 5%">S.No</th>
+              <th style="width: 25%">Counter Name</th>
+              <th style="width: 15%">Cash (₹)</th>
+              <th style="width: 15%">Online (₹)</th>
+              <th style="width: 15%">Total (₹)</th>
+              <th style="width: 25%">To Whom</th>
+            </tr>
+          </thead>
+          <tbody>
     `;
 
-    // Add each counter
+    // Add each counter with its breakdown
     counters.forEach((counter, index) => {
+      // Main counter row
       html += `
-        <div class="counter-section">
-          <div class="counter-header">
-            ${index + 1}. ${counter.counterName}
-            <span class="counter-total">₹${counter.totalAmount.toLocaleString()}</span>
-          </div>
-          
-          <div class="breakdown">
-            <div class="breakdown-title">Amount Breakdown:</div>
-            <div class="breakdown-row">
-              <span class="cash">💵 Cash:</span>
-              <span class="cash">₹${counter.cash.toLocaleString()}</span>
-            </div>
-            <div class="breakdown-row">
-              <span class="online">💳 Online:</span>
-              <span class="online">₹${counter.online.toLocaleString()}</span>
-            </div>
-          </div>
-          
-          <div class="users-section">
-            <div class="breakdown-title">Worker Breakdown:</div>
+        <tr class="counter-row">
+          <td class="text-center">${index + 1}</td>
+          <td><strong>${counter.counterName}</strong></td>
+          <td class="text-right">${counter.cash.toLocaleString()}</td>
+          <td class="text-right">${counter.online.toLocaleString()}</td>
+          <td class="text-right"><strong>${counter.totalAmount.toLocaleString()}</strong></td>
+          <td>${counter.users.map(w => w.workerName).join(', ')}</td>
+        </tr>
       `;
 
-      counter.users.forEach(user => {
-        html += `
-          <div class="user-item">
-            <div class="user-name">👤 ${user.workerName} - ₹${user.total.toLocaleString()}</div>
-            <div class="user-breakdown">
-              Cash: ₹${user.cash.toLocaleString()} | Online: ₹${user.online.toLocaleString()}
-            </div>
-          </div>
-        `;
-      });
-
-      html += `
-          </div>
-        </div>
-      `;
+      // Breakdown rows (if multiple workers)
+      if (counter.users.length > 1) {
+        counter.users.forEach(user => {
+          html += `
+            <tr class="breakdown-row">
+              <td></td>
+              <td style="padding-left: 20px;">└─ ${user.workerName}</td>
+              <td class="text-right">${user.cash.toLocaleString()}</td>
+              <td class="text-right">${user.online.toLocaleString()}</td>
+              <td class="text-right">${user.total.toLocaleString()}</td>
+              <td>${user.workerName}</td>
+            </tr>
+          `;
+        });
+      }
     });
 
+    // Grand total row
     html += `
-        <div class="footer">
-          Generated on ${new Date().toLocaleString()}<br>
-          Money Collection App
+        <tr class="total-row">
+          <td colspan="2" class="text-center"><strong>GRAND TOTAL</strong></td>
+          <td class="text-right"><strong>${totalCash.toLocaleString()}</strong></td>
+          <td class="text-right"><strong>${totalOnline.toLocaleString()}</strong></td>
+          <td class="text-right"><strong>${grandTotal.toLocaleString()}</strong></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="summary-box">
+      <div class="summary-title">SUMMARY</div>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-label">Total Collections:</span>
+          <span class="summary-value">${collectionsCount}</span>
         </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Counters:</span>
+          <span class="summary-value">${counters.length}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Cash:</span>
+          <span class="summary-value">₹${totalCash.toLocaleString()}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Online:</span>
+          <span class="summary-value">₹${totalOnline.toLocaleString()}</span>
+        </div>
+      </div>
+      
+      <div style="margin-top: 12px; border-top: 1px solid #999; padding-top: 8px;">
+        <div style="font-weight: bold; margin-bottom: 6px;">Amount by Workers:</div>
+        ${Object.entries(workerTotals).map(([worker, amount]) => `
+          <div class="summary-item">
+            <span>${worker}:</span>
+            <span class="summary-value">₹${amount.toLocaleString()}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    
+    <div class="footer">
+      Generated on ${new Date().toLocaleString()} | Money Collection App
+    </div>
+    
       </body>
       </html>
     `;
@@ -419,7 +481,7 @@ const PDFExportScreen = ({ navigation }) => {
       
       Alert.alert(
         "PDF Generated",
-        `PDF saved to: ${file.filePath}`,
+        `PDF saved successfully!`,
         [
           { text: "OK" },
           {
@@ -432,6 +494,27 @@ const PDFExportScreen = ({ navigation }) => {
       console.error("PDF generation error:", error);
       Alert.alert("Error", "Failed to generate PDF. Please try again.");
       setLoading(false);
+    }
+  };
+
+  const sharePDF = async () => {
+    if (!pdfPath) {
+      Alert.alert("Error", "No PDF to share. Please generate PDF first.");
+      return;
+    }
+
+    try {
+      const shareOptions = {
+        title: 'Share Collection Report',
+        message: `Collection Report for ${selectedDate}`,
+        url: `file://${pdfPath}`,
+        type: 'application/pdf',
+      };
+
+      await Share.share(shareOptions);
+    } catch (error) {
+      console.error("Share error:", error);
+      Alert.alert("Error", "Failed to share PDF.");
     }
   };
 
@@ -627,12 +710,20 @@ const PDFExportScreen = ({ navigation }) => {
         <View style={styles.pdfContainer}>
           <View style={styles.pdfHeader}>
             <Text style={styles.pdfTitle}>Collection Report</Text>
-            <TouchableOpacity
-              onPress={() => setPdfModalVisible(false)}
-              style={styles.pdfCloseBtn}
-            >
-              <MaterialIcon name="close" size={24} color="#fff" />
-            </TouchableOpacity>
+            <View style={styles.pdfActions}>
+              <TouchableOpacity
+                onPress={sharePDF}
+                style={styles.pdfShareBtn}
+              >
+                <MaterialIcon name="share" size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setPdfModalVisible(false)}
+                style={styles.pdfCloseBtn}
+              >
+                <MaterialIcon name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
           
           {pdfPath && (
@@ -898,6 +989,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#fff",
+  },
+  pdfActions: {
+    flexDirection: "row",
+    gap: 15,
+  },
+  pdfShareBtn: {
+    padding: 4,
   },
   pdfCloseBtn: {
     padding: 4,

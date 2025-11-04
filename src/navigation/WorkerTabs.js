@@ -1,14 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function WorkerTabs({ navigation }) {
-  const handleLogout = async () => {
-    await AsyncStorage.removeItem('@current_user');
-    navigation.replace('Login');
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -16,13 +10,14 @@ export default function WorkerTabs({ navigation }) {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.sectionTitle}>Counter Collections</Text>
         <TouchableOpacity
           style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
           onPress={() => navigation.navigate('AddCollection')}
         >
           <MaterialIcon name="add-circle" size={56} color="#6DD5B4" />
           <Text style={styles.cardTitle}>Add Collection</Text>
-          <Text style={styles.cardSub}>Record new payment</Text>
+          <Text style={styles.cardSub}>Record counter payment</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -31,16 +26,36 @@ export default function WorkerTabs({ navigation }) {
         >
           <MaterialIcon name="visibility" size={56} color="#7DD3FC" />
           <Text style={styles.cardTitle}>View My Collections</Text>
-          <Text style={styles.cardSub}>Browse your records</Text>
+          <Text style={styles.cardSub}>Browse your counter records</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.sectionTitle}>OnShop Collections</Text>
+        <TouchableOpacity
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+          onPress={() => navigation.navigate('AddOnShop')}
+        >
+          <MaterialIcon name="store" size={56} color="#FFB84D" />
+          <Text style={styles.cardTitle}>Add OnShop Entry</Text>
+          <Text style={styles.cardSub}>Record direct shop sale</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={handleLogout}
+          onPress={() => navigation.navigate('ViewOnShop')}
         >
-          <MaterialIcon name="logout" size={56} color="#F87171" />
-          <Text style={styles.cardTitle}>Logout</Text>
-          <Text style={styles.cardSub}>Sign out</Text>
+          <MaterialIcon name="receipt-long" size={56} color="#FFB84D" />
+          <Text style={styles.cardTitle}>View My OnShop</Text>
+          <Text style={styles.cardSub}>Browse your shop sales</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.sectionTitle}>Settings</Text>
+        <TouchableOpacity
+          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+          onPress={() => navigation.navigate('Security')}
+        >
+          <MaterialIcon name="security" size={56} color="#A78BFA" />
+          <Text style={styles.cardTitle}>Security</Text>
+          <Text style={styles.cardSub}>PIN & Logout</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -73,6 +88,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#6DD5B4',
+    marginBottom: 12,
+    marginTop: 8,
   },
   actionCard: {
     padding: 32,
