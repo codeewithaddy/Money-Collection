@@ -86,16 +86,9 @@ export default function LoginScreen({ navigation }) {
             return;
           }
         } else {
-          // Fallback to hardcoded users if not found in Firestore
-          const hardcodedUser = USERS[key];
-          if (hardcodedUser) {
-            userData = hardcodedUser;
-            isFallback = true;
-            console.log("Using fallback hardcoded user:", key);
-          } else {
-            Alert.alert("Invalid credentials", "Username or password is incorrect");
-            return;
-          }
+          // User not found in Firestore
+          Alert.alert("Invalid credentials", "Username or password is incorrect");
+          return;
         }
       }
       

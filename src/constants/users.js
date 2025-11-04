@@ -1,5 +1,6 @@
 // src/constants/users.js
-// Fallback for super admin only (used if config/superAdmin doesn't exist in Firestore)
-export default {
-  anil: { password: "anil123", role: "admin", displayName: "Anil" },
-};
+// ⚠️ SECURITY: NO HARDCODED CREDENTIALS
+// All user credentials (including super admin) are stored in Firebase only
+// This file is kept for backward compatibility but contains no credentials
+
+export default {};
