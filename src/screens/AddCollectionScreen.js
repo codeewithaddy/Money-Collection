@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import firestore from "@react-native-firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Calendar } from 'react-native-calendars';
 
@@ -128,17 +129,46 @@ export default function AddCollectionScreen({ navigation }) {
     };
 
     try {
-      // Always save locally first
+      // Check internet connectivity
+      const netInfo = await NetInfo.fetch();
+      
+      let firestoreDoc = null;
+      
+      // Save to Firestore first if online
+      if (netInfo.isConnected) {
+        try {
+          const { localId, ...dataToSync } = collectionData;
+          firestoreDoc = await firestore().collection("collections").add(dataToSync);
+          console.log("Saved to Firestore:", firestoreDoc.id);
+        } catch (firestoreError) {
+          console.log("Firestore save failed, will save locally:", firestoreError.message);
+        }
+      }
+      
+      // Save locally (always)
       const stored = await AsyncStorage.getItem("@local_collections");
       const list = stored ? JSON.parse(stored) : [];
-      list.push(collectionData);
+      
+      // Use Firestore document ID as localId if saved online
+      const localData = {
+        ...collectionData,
+        localId: firestoreDoc ? firestoreDoc.id : collectionData.localId
+      };
+      
+      list.push(localData);
       await AsyncStorage.setItem("@local_collections", JSON.stringify(list));
       
       await updatePendingCount();
       const dateMsg = selectedDate !== getTodayIST() 
         ? ` for ${selectedDate}` 
         : "";
-      alert(`Collection saved${dateMsg}! Go to View Collections to sync.`);
+      
+      // Check if actually saved to Firestore (not just connected to internet)
+      if (firestoreDoc) {
+        alert(`Collection saved${dateMsg} and synced to server!`);
+      } else {
+        alert(`Collection saved${dateMsg} offline! Sync when online.`);
+      }
       
       setSelectedCounter(null);
       setAmount("");

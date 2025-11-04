@@ -65,6 +65,56 @@ const ViewCollectionsScreen = ({ navigation }) => {
     return () => clearInterval(checkMidnight);
   }, []);
 
+  // Auto-sync from Firestore when screen loads (downloads all data from cloud)
+  const autoSyncFromFirestore = async () => {
+    try {
+      const netInfo = await NetInfo.fetch();
+      if (netInfo.isConnected) {
+        console.log("Auto-syncing from Firestore...");
+        
+        // Download all collections from Firestore
+        const firestoreSnapshot = await firestore()
+          .collection("collections")
+          .get();
+        
+        if (!firestoreSnapshot.empty) {
+          const firestoreData = firestoreSnapshot.docs.map((doc) => ({
+            ...doc.data(),
+            localId: doc.id, // Use Firestore doc ID
+          }));
+          
+          console.log(`Auto-downloaded ${firestoreData.length} collections from Firestore`);
+          
+          // Merge with local data (remove duplicates by timestamp)
+          const stored = await AsyncStorage.getItem("@local_collections");
+          const localData = stored ? JSON.parse(stored) : [];
+          
+          // Combine and deduplicate
+          const combined = [...firestoreData];
+          const timestamps = new Set(firestoreData.map(item => item.timestamp));
+          
+          localData.forEach(item => {
+            if (!timestamps.has(item.timestamp)) {
+              combined.push(item);
+            }
+          });
+          
+          // Save merged data back to local storage
+          await AsyncStorage.setItem(
+            "@local_collections",
+            JSON.stringify(combined)
+          );
+          
+          console.log(`Merged data: ${combined.length} total collections`);
+        } else {
+          console.log("No data in Firestore to sync");
+        }
+      }
+    } catch (error) {
+      console.log("Auto-sync error (non-critical):", error.message);
+    }
+  };
+
   const loadData = async () => {
     try {
       const raw = await AsyncStorage.getItem("@current_user");
@@ -72,7 +122,10 @@ const ViewCollectionsScreen = ({ navigation }) => {
       const userData = JSON.parse(raw);
       setUser(userData);
 
-      // Load local collections
+      // Auto-sync from Firestore when loading (downloads cloud data)
+      await autoSyncFromFirestore();
+
+      // Load local collections (now includes auto-synced data)
       const stored = await AsyncStorage.getItem("@local_collections");
       const allCollections = stored ? JSON.parse(stored) : [];
 
@@ -182,20 +235,64 @@ const ViewCollectionsScreen = ({ navigation }) => {
       return Alert.alert("Error", "Please enter a valid amount");
     }
 
-    const updatedCollections = localCollections.map((c) =>
-      c.localId === editItem.localId
-        ? { ...c, amount: Number(editAmount), mode: editMode }
-        : c
-    );
+    try {
+      // Update local storage
+      const stored = await AsyncStorage.getItem("@local_collections");
+      const allLocal = stored ? JSON.parse(stored) : [];
+      const updatedCollections = allLocal.map((c) =>
+        c.localId === editItem.localId
+          ? { ...c, amount: Number(editAmount), mode: editMode }
+          : c
+      );
 
-    await AsyncStorage.setItem(
-      "@local_collections",
-      JSON.stringify(updatedCollections)
-    );
-    setPendingChanges(true);
-    setEditModalVisible(false);
-    loadData();
-    Alert.alert("Success", "Updated! Click Sync to save changes.");
+      await AsyncStorage.setItem(
+        "@local_collections",
+        JSON.stringify(updatedCollections)
+      );
+
+      // Update Firestore if online
+      try {
+        const netInfo = await NetInfo.fetch();
+        if (netInfo.isConnected) {
+          // Check if this document exists in Firestore (might be offline-created item)
+          const docRef = firestore().collection("collections").doc(editItem.localId);
+          const docSnap = await docRef.get();
+          
+          if (docSnap.exists) {
+            // Document exists in Firestore, update it
+            await docRef.update({
+              amount: Number(editAmount),
+              mode: editMode,
+            });
+            console.log("Updated in Firestore:", editItem.localId);
+            setEditModalVisible(false);
+            loadData();
+            Alert.alert("Success", "Updated on server and device!");
+          } else {
+            // Document doesn't exist (was created offline), mark for sync
+            console.log("Document not in Firestore yet, marking for sync");
+            setPendingChanges(true);
+            setEditModalVisible(false);
+            loadData();
+            Alert.alert("Updated locally", "Click Sync to upload to server.");
+          }
+        } else {
+          setPendingChanges(true);
+          setEditModalVisible(false);
+          loadData();
+          Alert.alert("Updated locally", "Will sync to server when online.");
+        }
+      } catch (firestoreError) {
+        console.log("Could not update Firestore:", firestoreError.message);
+        setPendingChanges(true);
+        setEditModalVisible(false);
+        loadData();
+        Alert.alert("Updated locally", "Click Sync to save to server.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to update entry.");
+      console.error("Edit error:", error);
+    }
   };
 
   const deleteItem = async (item) => {
@@ -217,16 +314,51 @@ const ViewCollectionsScreen = ({ navigation }) => {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            const updatedCollections = localCollections.filter(
-              (c) => c.localId !== item.localId
-            );
-            await AsyncStorage.setItem(
-              "@local_collections",
-              JSON.stringify(updatedCollections)
-            );
-            setPendingChanges(true);
-            loadData();
-            Alert.alert("Deleted", "Click Sync to save changes.");
+            try {
+              // Delete from local storage
+              const stored = await AsyncStorage.getItem("@local_collections");
+              const allLocal = stored ? JSON.parse(stored) : [];
+              const updatedCollections = allLocal.filter(
+                (c) => c.localId !== item.localId
+              );
+              await AsyncStorage.setItem(
+                "@local_collections",
+                JSON.stringify(updatedCollections)
+              );
+
+              // Also delete from Firestore if online
+              try {
+                const netInfo = await NetInfo.fetch();
+                if (netInfo.isConnected) {
+                  // Check if this document exists in Firestore (might be offline-created item)
+                  const docRef = firestore().collection("collections").doc(item.localId);
+                  const docSnap = await docRef.get();
+                  
+                  if (docSnap.exists) {
+                    // Document exists in Firestore, delete it
+                    await docRef.delete();
+                    console.log("Deleted from Firestore:", item.localId);
+                    Alert.alert("Deleted", "Entry removed from server and device.");
+                  } else {
+                    // Document doesn't exist (was created offline), just local delete
+                    console.log("Document not in Firestore, only local delete");
+                    Alert.alert("Deleted", "Entry removed from device.");
+                  }
+                } else {
+                  setPendingChanges(true);
+                  Alert.alert("Deleted locally", "Will be removed from server when you sync.");
+                }
+              } catch (firestoreError) {
+                console.log("Could not delete from Firestore:", firestoreError.message);
+                setPendingChanges(true);
+                Alert.alert("Deleted locally", "Click Sync to remove from server.");
+              }
+
+              loadData();
+            } catch (error) {
+              Alert.alert("Error", "Failed to delete entry.");
+              console.error("Delete error:", error);
+            }
           },
         },
       ]
@@ -247,52 +379,101 @@ const ViewCollectionsScreen = ({ navigation }) => {
 
       Alert.alert(
         "Sync Data",
-        "This will sync all local data to the server. Continue?",
+        "This will sync all data between device and server. Continue?",
         [
           { text: "Cancel", style: "cancel" },
           {
             text: "Sync",
             onPress: async () => {
               try {
-                // Delete all existing collections for this user from Firestore
-                const snapshot = await firestore().collection("collections").get();
-                const batch = firestore().batch();
-
-                // If admin, delete all. If worker, delete only theirs
-                snapshot.docs.forEach((doc) => {
-                  const data = doc.data();
-                  if (
-                    user.role === "admin" ||
-                    data.workerName === user.displayName
-                  ) {
-                    batch.delete(doc.ref);
-                  }
-                });
-
-                await batch.commit();
-
-                // Add all local collections to Firestore
+                console.log("=== Starting Bidirectional Sync ===");
+                
+                // STEP 1: Get all local collections
                 const stored = await AsyncStorage.getItem("@local_collections");
                 const allLocal = stored ? JSON.parse(stored) : [];
+                console.log(`Local collections: ${allLocal.length}`);
 
+                // STEP 2: Upload local collections to Firestore (only offline-created items)
+                let uploadedCount = 0;
                 for (const item of allLocal) {
                   const { localId, ...dataToSync } = item;
-                  await firestore().collection("collections").add(dataToSync);
+                  
+                  // Check if localId looks like a Firestore doc ID (20 chars, alphanumeric)
+                  // Firestore doc IDs are usually 20 characters long
+                  const isFirestoreId = localId && localId.length === 20 && /^[a-zA-Z0-9]+$/.test(localId);
+                  
+                  if (!isFirestoreId) {
+                    // This item was created offline (timestamp-based ID), upload it
+                    try {
+                      const newDoc = await firestore().collection("collections").add(dataToSync);
+                      console.log(`Uploaded offline item, new ID: ${newDoc.id}`);
+                      
+                      // Update local storage with new Firestore ID
+                      const index = allLocal.findIndex(i => i.localId === localId);
+                      if (index !== -1) {
+                        allLocal[index].localId = newDoc.id;
+                      }
+                      
+                      uploadedCount++;
+                    } catch (uploadError) {
+                      console.log(`Failed to upload item ${localId}:`, uploadError.message);
+                    }
+                  } else {
+                    // Item already has Firestore ID, verify it exists
+                    try {
+                      const docSnap = await firestore().collection("collections").doc(localId).get();
+                      if (!docSnap.exists) {
+                        // Document doesn't exist, re-upload
+                        await firestore().collection("collections").doc(localId).set(dataToSync);
+                        uploadedCount++;
+                        console.log(`Re-uploaded missing doc: ${localId}`);
+                      }
+                    } catch (checkError) {
+                      console.log(`Could not verify doc ${localId}:`, checkError.message);
+                    }
+                  }
                 }
+                console.log(`Uploaded new entries: ${uploadedCount}`);
 
-                // Update last synced timestamp
+                // STEP 3: Download ALL collections from Firestore
+                const firestoreSnapshot = await firestore()
+                  .collection("collections")
+                  .get();
+                
+                const firestoreData = firestoreSnapshot.docs.map((doc) => ({
+                  ...doc.data(),
+                  localId: doc.id, // Use Firestore ID as localId
+                }));
+                console.log(`Downloaded from Firestore: ${firestoreData.length}`);
+
+                // STEP 4: Save all Firestore data to local (replace local with server data)
+                await AsyncStorage.setItem(
+                  "@local_collections",
+                  JSON.stringify(firestoreData)
+                );
+                console.log("Local storage updated with server data");
+
+                // STEP 5: Update last synced timestamp
                 const syncTime = new Date().toISOString();
                 await AsyncStorage.setItem("@last_synced", syncTime);
                 setLastSynced(syncTime);
 
                 setPendingChanges(false);
                 
-                // Run auto-cleanup after sync (deletes data older than 1 month)
+                // STEP 6: Run auto-cleanup (deletes data older than 30 days)
                 console.log("Running post-sync cleanup...");
                 await autoCleanup();
                 
-                Alert.alert("Success", "All data synced to server!");
+                // STEP 7: Reload data to show updated collections
+                await loadData();
+                
+                console.log("=== Sync Complete ===");
+                Alert.alert(
+                  "Success", 
+                  `Synced! Uploaded: ${uploadedCount}, Total in database: ${firestoreData.length}`
+                );
               } catch (error) {
+                console.error("Sync error:", error);
                 Alert.alert(
                   "Sync Failed",
                   "Unable to sync. Please check your internet connection and try again."
