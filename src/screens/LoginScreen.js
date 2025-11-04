@@ -15,6 +15,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import firestore from "@react-native-firebase/firestore";
 import USERS from "../constants/users";
+import { UPDATE_CONFIG } from "../config/updateConfig";
 
 export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState("");
@@ -205,7 +206,7 @@ export default function LoginScreen({ navigation }) {
         </TouchableOpacity>
 
         {/* Footer */}
-        <Text style={styles.footerText}>Money Collection App v3.0</Text>
+        <Text style={styles.footerText}>Money Collection App v{UPDATE_CONFIG.CURRENT_VERSION}</Text>
       </View>
     </KeyboardAvoidingView>
   );
