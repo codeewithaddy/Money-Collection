@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
-  PermissionsAndroid,
   Platform,
   ActivityIndicator,
   NativeModules,
 } from 'react-native';
 import RNFS from 'react-native-fs';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
 
 const { InstallApk } = NativeModules;
 
@@ -82,19 +82,67 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
   const requestStoragePermission = async () => {
     if (Platform.OS === 'android') {
       try {
-        // Request storage permission for download
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: 'Storage Permission',
-            message: 'App needs storage access to download the update',
-            buttonPositive: 'OK',
-          }
-        );
+        console.log('📱 Checking storage permission for update download...');
+        console.log('📱 Android API Level:', Platform.Version);
         
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
+        // For Android 13+ (API 33+), use app-specific directory (no permission needed)
+        if (Platform.Version >= 33) {
+          console.log('✅ Android 13+: Using app-specific directory (no permission needed)');
+          return true;
+        }
+        
+        // For Android 12 and below, request WRITE_EXTERNAL_STORAGE
+        console.log('📱 Android 12 or below: Requesting WRITE_EXTERNAL_STORAGE permission...');
+        const storageStatus = await check(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
+        console.log('💾 Storage permission status:', storageStatus);
+        
+        if (storageStatus === RESULTS.GRANTED) {
+          console.log('✅ Storage permission already granted');
+          return true;
+        }
+        
+        // If DENIED (never asked) or BLOCKED (denied before) - try to request or show settings
+        if (storageStatus === RESULTS.DENIED || storageStatus === RESULTS.BLOCKED) {
+          // First, try to request permission (will show dialog if DENIED)
+          console.log('📱 Requesting storage permission...');
+          const result = await request(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
+          console.log('💾 Storage permission request result:', result);
+          
+          if (result === RESULTS.GRANTED) {
+            console.log('✅ Storage permission granted');
+            return true;
+          }
+          
+          // If still denied/blocked after request, show settings option
+          if (result === RESULTS.DENIED || result === RESULTS.BLOCKED) {
+            return new Promise((resolve) => {
+              Alert.alert(
+                'Storage Permission Required',
+                'Storage permission is needed to download app updates. Please allow storage access to continue.',
+                [
+                  { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+                  {
+                    text: 'Open Settings',
+                    onPress: async () => {
+                      await openSettings();
+                      // Check again after returning from settings
+                      setTimeout(async () => {
+                        const recheckStatus = await check(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
+                        resolve(recheckStatus === RESULTS.GRANTED);
+                      }, 1000);
+                    }
+                  }
+                ]
+              );
+            });
+          }
+        }
+        
+        console.log('❌ Storage permission not granted');
+        return false;
       } catch (err) {
-        console.warn(err);
+        console.error('❌ Storage permission error:', err);
+        Alert.alert('Error', 'Failed to request permission. Please try again.');
         return false;
       }
     }
@@ -125,7 +173,7 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
       console.error('Install error:', error);
       Alert.alert(
         'Installation Error',
-        `Failed to install the update: ${error.message}\n\nPlease install manually from: ${filePath}`,
+        `Failed to install the update: ${error.message}\n\nFile location: ${filePath}\n\nPlease try downloading again.`,
         [{ text: 'OK' }]
       );
     }
@@ -140,15 +188,60 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
       const hasStoragePermission = await requestStoragePermission();
       if (!hasStoragePermission) {
         setDownloading(false);
-        Alert.alert('Permission Required', 'Storage permission is needed to download the update.');
+        Alert.alert('Permission Required', 'Storage permission is needed to download the update. Please try again after granting permission.');
         return;
       }
 
-      const downloadDest = `${RNFS.DownloadDirectoryPath}/MoneyCollection_${updateInfo.version}.apk`;
+      // Choose download directory based on Android version
+      let downloadsDir;
+      if (Platform.Version >= 33) {
+        // Android 13+: Use app-specific external directory (no permission needed)
+        // This directory is accessible via Files app and doesn't require WRITE_EXTERNAL_STORAGE
+        downloadsDir = RNFS.ExternalDirectoryPath;
+        console.log('📁 Using app-specific directory (Android 13+):', downloadsDir);
+      } else {
+        // Android 12 and below: Use public Downloads directory (permission required)
+        downloadsDir = RNFS.DownloadDirectoryPath;
+        console.log('📁 Using public Downloads directory (Android 12-):', downloadsDir);
+      }
+      
+      // Check if directory exists
+      const dirExists = await RNFS.exists(downloadsDir);
+      console.log('📁 Directory exists:', dirExists);
+      
+      if (!dirExists) {
+        console.log('⚠️ Directory does not exist! Creating...');
+        try {
+          await RNFS.mkdir(downloadsDir);
+          console.log('✅ Directory created successfully');
+          
+          // Verify it was created
+          const verifyExists = await RNFS.exists(downloadsDir);
+          if (!verifyExists) {
+            throw new Error('Failed to create download directory');
+          }
+        } catch (mkdirError) {
+          console.error('❌ Failed to create directory:', mkdirError);
+          throw new Error('Cannot access storage. Please try again.');
+        }
+      }
 
-      console.log('Starting download...');
-      console.log('Download URL:', updateInfo.downloadUrl);
-      console.log('Download destination:', downloadDest);
+      const downloadDest = `${downloadsDir}/MoneyCollection_${updateInfo.version}.apk`;
+
+      console.log('📥 Starting download...');
+      console.log('🔗 Download URL:', updateInfo.downloadUrl);
+      console.log('📁 Download destination:', downloadDest);
+
+      // Test if we can write to the directory
+      try {
+        const testFile = `${downloadsDir}/.test_write`;
+        await RNFS.writeFile(testFile, 'test', 'utf8');
+        await RNFS.unlink(testFile);
+        console.log('✅ Write test successful');
+      } catch (writeTestError) {
+        console.error('❌ Cannot write to Downloads directory:', writeTestError);
+        throw new Error('Cannot write to Downloads folder. Please check storage permissions in app settings.');
+      }
 
       // Download the APK with progress tracking
       const downloadResult = await RNFS.downloadFile({
@@ -171,18 +264,23 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
         
         if (fileExists) {
           const stats = await RNFS.stat(downloadDest);
-          console.log('Downloaded file size:', stats.size, 'bytes');
+          console.log('📦 Downloaded file size:', stats.size, 'bytes');
+          
+          // Validate APK file size (should be at least 1MB for a valid APK)
+          if (stats.size < 1024 * 1024) {
+            throw new Error('Downloaded file is too small. The download may have failed.');
+          }
           
           setDownloading(false);
           
           Alert.alert(
             'Download Complete! ✅',
-            `Update downloaded successfully (${formatBytes(stats.size)})\n\nTap "Install" to update the app. The installer will open automatically.`,
+            `Update downloaded successfully (${formatBytes(stats.size)})\n\nTap "Install" to update the app. The installer will replace the current version.`,
             [
               {
                 text: 'Install',
                 onPress: async () => {
-                  console.log('User tapped Install, starting installation...');
+                  console.log('👤 User tapped Install, starting installation...');
                   await installAPK(downloadDest);
                   if (onUpdateComplete) {
                     onUpdateComplete();
@@ -201,17 +299,23 @@ const UpdateModal = ({ visible, updateInfo, onDismiss, onUpdateComplete }) => {
     } catch (error) {
       console.error('Download error:', error);
       setDownloading(false);
+      
+      let errorMessage = 'Failed to download the update. Please check your internet connection and try again.';
+      
+      if (error.message.includes('ENOENT')) {
+        errorMessage = 'Download directory not accessible. Please check storage permissions and try again.';
+      } else if (error.message.includes('Network')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.message) {
+        errorMessage = `Download failed: ${error.message}`;
+      }
+      
       Alert.alert(
         'Download Failed',
-        `Failed to download the update: ${error.message}\n\nYou can download manually from GitHub.`,
+        errorMessage,
         [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Open GitHub',
-            onPress: () => {
-              Linking.openURL('https://github.com/codeewithaddy/Money-Collection/releases/latest');
-            },
-          },
+          { text: 'Try Again', onPress: downloadAndInstall },
+          { text: 'Cancel', style: 'cancel' }
         ]
       );
     }

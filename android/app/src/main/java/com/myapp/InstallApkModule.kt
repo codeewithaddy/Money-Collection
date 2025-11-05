@@ -28,10 +28,7 @@ class InstallApkModule(reactContext: ReactApplicationContext) : ReactContextBase
                 return
             }
 
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-
+            // Create URI for the APK file
             val uri: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 // Android 7.0+ requires FileProvider
                 FileProvider.getUriForFile(
@@ -43,7 +40,16 @@ class InstallApkModule(reactContext: ReactApplicationContext) : ReactContextBase
                 Uri.fromFile(file)
             }
 
+            // Use ACTION_VIEW to show the Android Package Installer UI
+            val intent = Intent(Intent.ACTION_VIEW)
             intent.setDataAndType(uri, "application/vnd.android.package-archive")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            
+            // This is important - without this, the installer won't allow updates
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
 
             context.startActivity(intent)
             promise.resolve("Installation started")

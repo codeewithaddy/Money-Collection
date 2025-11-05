@@ -1,6 +1,6 @@
 // src/screens/AdminDashboard.js
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { autoCleanup } from "../utils/dataCleanup";
 

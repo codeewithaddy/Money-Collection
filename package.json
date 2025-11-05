@@ -1,6 +1,6 @@
 {
   "name": "money-collection",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -30,6 +30,7 @@
     "react-native-html-to-pdf": "^0.12.0",
     "react-native-paper": "^5.14.5",
     "react-native-pdf": "^6.7.7",
+    "react-native-permissions": "^5.4.4",
     "react-native-picker-select": "^9.3.1",
     "react-native-safe-area-context": "^5.6.2",
     "react-native-screens": "^4.18.0",
