@@ -5,7 +5,7 @@ export const UPDATE_CONFIG = {
   GITHUB_REPO: 'Money-Collection',
   
   // Current app version (update this when you release new version)
-  CURRENT_VERSION: '4.2.0',
+  CURRENT_VERSION: '4.2.1',
   
   // Update check interval (in milliseconds)
   CHECK_INTERVAL: 24 * 60 * 60 * 1000, // 24 hours

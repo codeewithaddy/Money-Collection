@@ -78,7 +78,7 @@ android/app/build/outputs/apk/release/app-release.apk
 ### 2.4 Rename APK (Optional but Recommended)
 
 ```bash
-cp android/app/build/outputs/apk/release/app-release.apk ~/Desktop/MoneyCollection_4.2.0.apk
+cp android/app/build/outputs/apk/release/app-release.apk ~/Desktop/MoneyCollection_4.2.1.apk
 ```
 
 ---
