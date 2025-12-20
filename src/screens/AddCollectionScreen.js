@@ -229,7 +229,10 @@ export default function AddCollectionScreen({ navigation }) {
                   <Text>{item.name}</Text>
                 </TouchableOpacity>
               )}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
             />
+            <View style={{height: 1, backgroundColor: '#eee', marginTop: 8}} />
             <TouchableOpacity
               onPress={() => setModalVisible(false)}
               style={styles.closeBtn}

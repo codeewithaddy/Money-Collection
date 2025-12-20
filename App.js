@@ -6,6 +6,7 @@ import AppNavigator from "./src/navigation/AppNavigator";
 import UpdateModal from "./src/components/UpdateModal";
 import UpdateChecker from "./src/services/UpdateChecker";
 import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function App() {
   const appState = useRef(AppState.currentState);
@@ -93,14 +94,16 @@ export default function App() {
   };
 
   return (
-    <>
-      <AppNavigator />
-      <UpdateModal
-        visible={showUpdateModal}
-        updateInfo={updateInfo}
-        onDismiss={handleDismissUpdate}
-        onUpdateComplete={handleUpdateComplete}
-      />
-    </>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <>
+        <AppNavigator />
+        <UpdateModal
+          visible={showUpdateModal}
+          updateInfo={updateInfo}
+          onDismiss={handleDismissUpdate}
+          onUpdateComplete={handleUpdateComplete}
+        />
+      </>
+    </GestureHandlerRootView>
   );
 }

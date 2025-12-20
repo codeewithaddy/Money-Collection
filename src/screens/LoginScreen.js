@@ -10,7 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import firestore from "@react-native-firebase/firestore";
@@ -140,8 +142,15 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-      <View style={styles.content}>
+    <KeyboardAvoidingView behavior="padding" style={styles.container}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
         {/* Logo Section */}
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
@@ -207,7 +216,9 @@ export default function LoginScreen({ navigation }) {
 
         {/* Footer */}
         <Text style={styles.footerText}>Money Collection App v{UPDATE_CONFIG.CURRENT_VERSION}</Text>
-      </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </KeyboardAvoidingView>
   );
 }
@@ -222,6 +233,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingTop: 60,
     paddingBottom: 40,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   logoContainer: {
     alignItems: "center",

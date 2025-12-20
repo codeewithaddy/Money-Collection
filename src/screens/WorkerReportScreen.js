@@ -8,10 +8,12 @@ import {
   Modal,
   ScrollView,
   Alert,
+  useWindowDimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialIcon from "react-native-vector-icons/MaterialIcons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const WorkerReportScreen = ({ navigation }) => {
   const [workers, setWorkers] = useState([]);
@@ -33,6 +35,8 @@ const WorkerReportScreen = ({ navigation }) => {
     uniqueCounters: 0,
   });
   const [groupedData, setGroupedData] = useState([]);
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   useEffect(() => {
     loadWorkers();
@@ -259,7 +263,7 @@ const WorkerReportScreen = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -283,79 +287,81 @@ const WorkerReportScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       {selectedWorker && (
-        <>
-          {/* Filter Bar */}
-          <View style={styles.filterBar}>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setFilterModalVisible(true)}
-            >
-              <MaterialIcon name="filter-list" size={20} color="#007AFF" />
-              <Text style={styles.filterButtonText}>{getFilterLabel()}</Text>
-            </TouchableOpacity>
-            {filterType !== "all" && (
-              <TouchableOpacity
-                style={styles.clearFilterBtn}
-                onPress={() => {
-                  setFilterType("all");
-                  setSelectedDate(null);
-                  setStartDate(null);
-                  setEndDate(null);
-                }}
-              >
-                <MaterialIcon name="close" size={18} color="#666" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Stats Cards */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
-            <View style={[styles.statCard, {backgroundColor: "#e8f5e9"}]}>
-              <MaterialIcon name="account-balance-wallet" size={28} color="#2ecc71" />
-              <Text style={styles.statValue}>₹{stats.total.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Total Amount</Text>
-            </View>
-            <View style={[styles.statCard, {backgroundColor: "#fff3e0"}]}>
-              <MaterialIcon name="money" size={28} color="#ff9800" />
-              <Text style={styles.statValue}>₹{stats.cash.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Cash</Text>
-            </View>
-            <View style={[styles.statCard, {backgroundColor: "#e3f2fd"}]}>
-              <MaterialIcon name="payment" size={28} color="#2196f3" />
-              <Text style={styles.statValue}>₹{stats.online.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Online</Text>
-            </View>
-            <View style={[styles.statCard, {backgroundColor: "#f3e5f5"}]}>
-              <MaterialIcon name="receipt" size={28} color="#9c27b0" />
-              <Text style={styles.statValue}>{stats.collectionsCount}</Text>
-              <Text style={styles.statLabel}>Collections</Text>
-            </View>
-            <View style={[styles.statCard, {backgroundColor: "#fce4ec"}]}>
-              <MaterialIcon name="date-range" size={28} color="#e91e63" />
-              <Text style={styles.statValue}>{stats.uniqueDates}</Text>
-              <Text style={styles.statLabel}>Days</Text>
-            </View>
-            <View style={[styles.statCard, {backgroundColor: "#e0f2f1"}]}>
-              <MaterialIcon name="people" size={28} color="#009688" />
-              <Text style={styles.statValue}>{stats.uniqueCounters}</Text>
-              <Text style={styles.statLabel}>Counters</Text>
-            </View>
-          </ScrollView>
-
-          {/* Grouped Collections List */}
-          <FlatList
-            data={groupedData}
-            keyExtractor={(item) => item.date}
-            renderItem={renderDateSection}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <MaterialIcon name="inbox" size={64} color="#ccc" />
-                <Text style={styles.emptyText}>No collections found</Text>
+        /* Grouped Collections List */
+        <FlatList
+          data={groupedData}
+          keyExtractor={(item) => item.date}
+          renderItem={renderDateSection}
+          ListHeaderComponent={
+            <View>
+              {/* Filter Bar */}
+              <View style={styles.filterBar}>
+                <TouchableOpacity
+                  style={styles.filterButton}
+                  onPress={() => setFilterModalVisible(true)}
+                >
+                  <MaterialIcon name="filter-list" size={20} color="#007AFF" />
+                  <Text style={styles.filterButtonText}>{getFilterLabel()}</Text>
+                </TouchableOpacity>
+                {filterType !== "all" && (
+                  <TouchableOpacity
+                    style={styles.clearFilterBtn}
+                    onPress={() => {
+                      setFilterType("all");
+                      setSelectedDate(null);
+                      setStartDate(null);
+                      setEndDate(null);
+                    }}
+                  >
+                    <MaterialIcon name="close" size={18} color="#666" />
+                  </TouchableOpacity>
+                )}
               </View>
-            }
-            contentContainerStyle={styles.listContent}
-          />
-        </>
+
+              {/* Stats Cards */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
+                <View style={[styles.statCard, {backgroundColor: "#e8f5e9"}]}>
+                  <MaterialIcon name="account-balance-wallet" size={28} color="#2ecc71" />
+                  <Text style={styles.statValue}>₹{stats.total.toLocaleString()}</Text>
+                  <Text style={styles.statLabel}>Total Amount</Text>
+                </View>
+                <View style={[styles.statCard, {backgroundColor: "#fff3e0"}]}>
+                  <MaterialIcon name="money" size={28} color="#ff9800" />
+                  <Text style={styles.statValue}>₹{stats.cash.toLocaleString()}</Text>
+                  <Text style={styles.statLabel}>Cash</Text>
+                </View>
+                <View style={[styles.statCard, {backgroundColor: "#e3f2fd"}]}>
+                  <MaterialIcon name="payment" size={28} color="#2196f3" />
+                  <Text style={styles.statValue}>₹{stats.online.toLocaleString()}</Text>
+                  <Text style={styles.statLabel}>Online</Text>
+                </View>
+                <View style={[styles.statCard, {backgroundColor: "#f3e5f5"}]}>
+                  <MaterialIcon name="receipt" size={28} color="#9c27b0" />
+                  <Text style={styles.statValue}>{stats.collectionsCount}</Text>
+                  <Text style={styles.statLabel}>Collections</Text>
+                </View>
+                <View style={[styles.statCard, {backgroundColor: "#fce4ec"}]}>
+                  <MaterialIcon name="date-range" size={28} color="#e91e63" />
+                  <Text style={styles.statValue}>{stats.uniqueDates}</Text>
+                  <Text style={styles.statLabel}>Days</Text>
+                </View>
+                <View style={[styles.statCard, {backgroundColor: "#e0f2f1"}]}>
+                  <MaterialIcon name="people" size={28} color="#009688" />
+                  <Text style={styles.statValue}>{stats.uniqueCounters}</Text>
+                  <Text style={styles.statLabel}>Counters</Text>
+                </View>
+              </ScrollView>
+            </View>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialIcon name="inbox" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>No collections found</Text>
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+          style={{flex: 1}}
+        />
       )}
 
       {/* Worker Selection Modal */}
@@ -384,7 +390,10 @@ const WorkerReportScreen = ({ navigation }) => {
               ListEmptyComponent={
                 <Text style={styles.emptyText}>No workers found</Text>
               }
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
             />
+            <View style={{height: 1, backgroundColor: '#eee', marginTop: 8}} />
             <TouchableOpacity
               style={styles.closeBtn}
               onPress={() => setWorkerModalVisible(false)}
@@ -401,7 +410,7 @@ const WorkerReportScreen = ({ navigation }) => {
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Filter Collections</Text>
             
-            <ScrollView style={{maxHeight: 400}}>
+            <ScrollView style={{maxHeight: 400}} keyboardShouldPersistTaps="handled">
               {/* All Dates */}
               <TouchableOpacity
                 style={[styles.filterOption, filterType === "all" && styles.selectedFilterOption]}
@@ -484,6 +493,7 @@ const WorkerReportScreen = ({ navigation }) => {
                 )}
               </View>
             </ScrollView>
+            <View style={{height: 1, backgroundColor: '#eee', marginTop: 8}} />
 
             <TouchableOpacity
               style={styles.closeBtn}
@@ -494,7 +504,7 @@ const WorkerReportScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -564,7 +574,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statCard: {
-    minWidth: 120,
+    minWidth: 140,
     padding: 16,
     borderRadius: 12,
     marginRight: 12,

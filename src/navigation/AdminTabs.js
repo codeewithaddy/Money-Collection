@@ -1,9 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Import screens
 import AddCollectionScreen from '../screens/AddCollectionScreen';
@@ -18,148 +20,200 @@ import AdminManageUsers from '../screens/AdminManageUsers';
 
 const Tab = createBottomTabNavigator();
 
+const tabsOrder = ['Collections', 'Reports', 'Settings'];
+
 // Tab 1: Today Work (Collections)
 function CollectionsTab({ navigation }) {
+  const currentIndex = 0;
+  const left = Gesture.Fling()
+    .direction(Directions.LEFT)
+    .onEnd(() => {
+      const next = Math.min(currentIndex + 1, tabsOrder.length - 1);
+      if (next !== currentIndex) navigation.navigate(tabsOrder[next]);
+    });
+  const right = Gesture.Fling()
+    .direction(Directions.RIGHT)
+    .onEnd(() => {
+      const prev = Math.max(currentIndex - 1, 0);
+      if (prev !== currentIndex) navigation.navigate(tabsOrder[prev]);
+    });
+  const gestures = Gesture.Simultaneous(left, right);
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Today's Work</Text>
+    <GestureDetector gesture={gestures}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Today's Work</Text>
+        </View>
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <Text style={styles.sectionTitle}>Counter Collections</Text>
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('AddCollection')}
+          >
+            <MaterialIcon name="add-circle" size={48} color="#6DD5B4" />
+            <Text style={styles.cardTitle}>Add Collection</Text>
+            <Text style={styles.cardSub}>Record counter payment</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('ViewCollections')}
+          >
+            <MaterialIcon name="visibility" size={48} color="#6DD5B4" />
+            <Text style={styles.cardTitle}>View Collections</Text>
+            <Text style={styles.cardSub}>Browse counter records</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.sectionTitle}>OnShop Collections</Text>
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('AddOnShop')}
+          >
+            <MaterialIcon name="store" size={48} color="#FFB84D" />
+            <Text style={styles.cardTitle}>Add OnShop Entry</Text>
+            <Text style={styles.cardSub}>Record direct shop sale</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('ViewOnShop')}
+          >
+            <MaterialIcon name="receipt-long" size={48} color="#FFB84D" />
+            <Text style={styles.cardTitle}>View OnShop</Text>
+            <Text style={styles.cardSub}>Browse shop sales</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>Counter Collections</Text>
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('AddCollection')}
-        >
-          <MaterialIcon name="add-circle" size={48} color="#6DD5B4" />
-          <Text style={styles.cardTitle}>Add Collection</Text>
-          <Text style={styles.cardSub}>Record counter payment</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('ViewCollections')}
-        >
-          <MaterialIcon name="visibility" size={48} color="#6DD5B4" />
-          <Text style={styles.cardTitle}>View Collections</Text>
-          <Text style={styles.cardSub}>Browse counter records</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.sectionTitle}>OnShop Collections</Text>
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('AddOnShop')}
-        >
-          <MaterialIcon name="store" size={48} color="#FFB84D" />
-          <Text style={styles.cardTitle}>Add OnShop Entry</Text>
-          <Text style={styles.cardSub}>Record direct shop sale</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('ViewOnShop')}
-        >
-          <MaterialIcon name="receipt-long" size={48} color="#FFB84D" />
-          <Text style={styles.cardTitle}>View OnShop</Text>
-          <Text style={styles.cardSub}>Browse shop sales</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
+    </GestureDetector>
   );
 }
 
 // Tab 2: Reports
 function ReportsTab({ navigation }) {
+  const currentIndex = 1;
+  const left = Gesture.Fling()
+    .direction(Directions.LEFT)
+    .onEnd(() => {
+      const next = Math.min(currentIndex + 1, tabsOrder.length - 1);
+      if (next !== currentIndex) navigation.navigate(tabsOrder[next]);
+    });
+  const right = Gesture.Fling()
+    .direction(Directions.RIGHT)
+    .onEnd(() => {
+      const prev = Math.max(currentIndex - 1, 0);
+      if (prev !== currentIndex) navigation.navigate(tabsOrder[prev]);
+    });
+  const gestures = Gesture.Simultaneous(left, right);
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Reports</Text>
+    <GestureDetector gesture={gestures}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Reports</Text>
+        </View>
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('CounterReport')}
+          >
+            <MaterialIcon name="people" size={48} color="#FFB84D" />
+            <Text style={styles.cardTitle}>Counter Reports</Text>
+            <Text style={styles.cardSub}>View by counter</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('WorkerReport')}
+          >
+            <MaterialIcon name="person" size={48} color="#A78BFA" />
+            <Text style={styles.cardTitle}>Worker Reports</Text>
+            <Text style={styles.cardSub}>View by worker</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('PDFExport')}
+          >
+            <MaterialIcon name="picture-as-pdf" size={48} color="#FB7185" />
+            <Text style={styles.cardTitle}>PDF Export</Text>
+            <Text style={styles.cardSub}>Generate reports</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('CounterReport')}
-        >
-          <MaterialIcon name="people" size={48} color="#FFB84D" />
-          <Text style={styles.cardTitle}>Counter Reports</Text>
-          <Text style={styles.cardSub}>View by counter</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('WorkerReport')}
-        >
-          <MaterialIcon name="person" size={48} color="#A78BFA" />
-          <Text style={styles.cardTitle}>Worker Reports</Text>
-          <Text style={styles.cardSub}>View by worker</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('PDFExport')}
-        >
-          <MaterialIcon name="picture-as-pdf" size={48} color="#FB7185" />
-          <Text style={styles.cardTitle}>PDF Export</Text>
-          <Text style={styles.cardSub}>Generate reports</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
+    </GestureDetector>
   );
 }
 
 // Tab 3: Settings
 function SettingsTab({ navigation }) {
+  const currentIndex = 2;
+  const left = Gesture.Fling()
+    .direction(Directions.LEFT)
+    .onEnd(() => {
+      const next = Math.min(currentIndex + 1, tabsOrder.length - 1);
+      if (next !== currentIndex) navigation.navigate(tabsOrder[next]);
+    });
+  const right = Gesture.Fling()
+    .direction(Directions.RIGHT)
+    .onEnd(() => {
+      const prev = Math.max(currentIndex - 1, 0);
+      if (prev !== currentIndex) navigation.navigate(tabsOrder[prev]);
+    });
+  const gestures = Gesture.Simultaneous(left, right);
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
+    <GestureDetector gesture={gestures}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Settings</Text>
+        </View>
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('AdminManageCounters')}
+          >
+            <MaterialIcon name="store" size={48} color="#60D4A9" />
+            <Text style={styles.cardTitle}>Manage Counters</Text>
+            <Text style={styles.cardSub}>Add/Edit counters</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('AdminManageUsers')}
+          >
+            <MaterialIcon name="supervisor-account" size={48} color="#7DD3FC" />
+            <Text style={styles.cardTitle}>Manage Users</Text>
+            <Text style={styles.cardSub}>Add/Edit workers</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('Security')}
+          >
+            <MaterialIcon name="security" size={48} color="#FFB84D" />
+            <Text style={styles.cardTitle}>Security</Text>
+            <Text style={styles.cardSub}>PIN & Logout</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('AdminManageCounters')}
-        >
-          <MaterialIcon name="store" size={48} color="#60D4A9" />
-          <Text style={styles.cardTitle}>Manage Counters</Text>
-          <Text style={styles.cardSub}>Add/Edit counters</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('AdminManageUsers')}
-        >
-          <MaterialIcon name="supervisor-account" size={48} color="#7DD3FC" />
-          <Text style={styles.cardTitle}>Manage Users</Text>
-          <Text style={styles.cardSub}>Add/Edit workers</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
-          onPress={() => navigation.navigate('Security')}
-        >
-          <MaterialIcon name="security" size={48} color="#FFB84D" />
-          <Text style={styles.cardTitle}>Security</Text>
-          <Text style={styles.cardSub}>PIN & Logout</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
+    </GestureDetector>
   );
 }
 
 export default function AdminTabs() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: '#6DD5B4',
         tabBarInactiveTintColor: '#8A8A9E',
         tabBarStyle: {
-          height: 65,
-          paddingBottom: 10,
-          paddingTop: 10,
+          height: 56 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: 8,
           borderTopWidth: 1,
           borderTopColor: '#525174',
           backgroundColor: '#3E3D52',

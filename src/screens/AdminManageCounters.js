@@ -263,6 +263,7 @@ export default function AdminManageCounters({ navigation }) {
         <Icon name="search" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
           placeholder="Search counters..."
+          placeholderTextColor="#000"
           value={search}
           onChangeText={setSearch}
           style={styles.searchInput}
@@ -386,6 +387,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     padding: 0,
+    color: "#000",
   },
   btn: {
     backgroundColor: "#27ae60",

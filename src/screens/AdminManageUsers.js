@@ -317,6 +317,7 @@ export default function AdminManageUsers({ navigation }) {
         <Icon name="search" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
           placeholder="Search users..."
+          placeholderTextColor="#000"
           value={search}
           onChangeText={setSearch}
           style={styles.searchInput}
