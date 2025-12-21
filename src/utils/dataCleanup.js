@@ -10,8 +10,7 @@ const getCutoffDate = () => {
   const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
   const istTime = new Date(now.getTime() + istOffset);
   
-  // Go back 30 days
-  istTime.setDate(istTime.getDate() - 30);
+  istTime.setDate(istTime.getDate() - 365);
   
   return istTime.toISOString().split('T')[0]; // YYYY-MM-DD
 };

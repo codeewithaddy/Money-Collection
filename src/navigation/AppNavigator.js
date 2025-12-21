@@ -19,6 +19,10 @@ import ViewOnShopScreen from "../screens/ViewOnShopScreen";
 import CounterReportScreen from "../screens/CounterReportScreen";
 import WorkerReportScreen from "../screens/WorkerReportScreen";
 import PDFExportScreen from "../screens/PDFExportScreen";
+import AdminManageSellers from "../screens/AdminManageSellers";
+import AddSellerEntryScreen from "../screens/AddSellerEntryScreen";
+import ViewSellerLedgerScreen from "../screens/ViewSellerLedgerScreen";
+import SellerPDFExportScreen from "../screens/SellerPDFExportScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -139,6 +143,10 @@ export default function AppNavigator() {
         <Stack.Screen name="PDFExport" component={PDFExportScreen} />
         <Stack.Screen name="AdminManageCounters" component={AdminManageCounters} />
         <Stack.Screen name="AdminManageUsers" component={AdminManageUsers} />
+        <Stack.Screen name="AdminManageSellers" component={AdminManageSellers} />
+        <Stack.Screen name="AddSellerEntry" component={AddSellerEntryScreen} />
+        <Stack.Screen name="ViewSellerLedger" component={ViewSellerLedgerScreen} />
+        <Stack.Screen name="SellerPDFExport" component={SellerPDFExportScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

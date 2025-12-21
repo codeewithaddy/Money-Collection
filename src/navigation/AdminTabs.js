@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import firestore from '@react-native-firebase/firestore';
 
 // Import screens
 import AddCollectionScreen from '../screens/AddCollectionScreen';
@@ -20,22 +21,23 @@ import AdminManageUsers from '../screens/AdminManageUsers';
 
 const Tab = createBottomTabNavigator();
 
-const tabsOrder = ['Collections', 'Reports', 'Settings'];
+const tabsOrder = ['Collections', 'Reports', 'Purchases', 'Settings'];
 
 // Tab 1: Today Work (Collections)
 function CollectionsTab({ navigation }) {
-  const currentIndex = 0;
+  const routes = navigation.getState?.().routeNames || [];
+  const currentIndex = Math.max(0, routes.indexOf('Collections'));
   const left = Gesture.Fling()
     .direction(Directions.LEFT)
     .onEnd(() => {
-      const next = Math.min(currentIndex + 1, tabsOrder.length - 1);
-      if (next !== currentIndex) navigation.navigate(tabsOrder[next]);
+      const next = Math.min(currentIndex + 1, routes.length - 1);
+      if (routes[next] && routes[next] !== routes[currentIndex]) navigation.navigate(routes[next]);
     });
   const right = Gesture.Fling()
     .direction(Directions.RIGHT)
     .onEnd(() => {
       const prev = Math.max(currentIndex - 1, 0);
-      if (prev !== currentIndex) navigation.navigate(tabsOrder[prev]);
+      if (routes[prev] && routes[prev] !== routes[currentIndex]) navigation.navigate(routes[prev]);
     });
   const gestures = Gesture.Simultaneous(left, right);
   return (
@@ -91,18 +93,19 @@ function CollectionsTab({ navigation }) {
 
 // Tab 2: Reports
 function ReportsTab({ navigation }) {
-  const currentIndex = 1;
+  const routes = navigation.getState?.().routeNames || [];
+  const currentIndex = Math.max(0, routes.indexOf('Reports'));
   const left = Gesture.Fling()
     .direction(Directions.LEFT)
     .onEnd(() => {
-      const next = Math.min(currentIndex + 1, tabsOrder.length - 1);
-      if (next !== currentIndex) navigation.navigate(tabsOrder[next]);
+      const next = Math.min(currentIndex + 1, routes.length - 1);
+      if (routes[next] && routes[next] !== routes[currentIndex]) navigation.navigate(routes[next]);
     });
   const right = Gesture.Fling()
     .direction(Directions.RIGHT)
     .onEnd(() => {
       const prev = Math.max(currentIndex - 1, 0);
-      if (prev !== currentIndex) navigation.navigate(tabsOrder[prev]);
+      if (routes[prev] && routes[prev] !== routes[currentIndex]) navigation.navigate(routes[prev]);
     });
   const gestures = Gesture.Simultaneous(left, right);
   return (
@@ -147,18 +150,19 @@ function ReportsTab({ navigation }) {
 
 // Tab 3: Settings
 function SettingsTab({ navigation }) {
-  const currentIndex = 2;
+  const routes = navigation.getState?.().routeNames || [];
+  const currentIndex = Math.max(0, routes.indexOf('Settings'));
   const left = Gesture.Fling()
     .direction(Directions.LEFT)
     .onEnd(() => {
-      const next = Math.min(currentIndex + 1, tabsOrder.length - 1);
-      if (next !== currentIndex) navigation.navigate(tabsOrder[next]);
+      const next = Math.min(currentIndex + 1, routes.length - 1);
+      if (routes[next] && routes[next] !== routes[currentIndex]) navigation.navigate(routes[next]);
     });
   const right = Gesture.Fling()
     .direction(Directions.RIGHT)
     .onEnd(() => {
       const prev = Math.max(currentIndex - 1, 0);
-      if (prev !== currentIndex) navigation.navigate(tabsOrder[prev]);
+      if (routes[prev] && routes[prev] !== routes[currentIndex]) navigation.navigate(routes[prev]);
     });
   const gestures = Gesture.Simultaneous(left, right);
   return (
@@ -201,8 +205,93 @@ function SettingsTab({ navigation }) {
   );
 }
 
+// Tab 3 (superadmin): Purchases
+function PurchasesTab({ navigation }) {
+  const routes = navigation.getState?.().routeNames || [];
+  const currentIndex = Math.max(0, routes.indexOf('Purchases'));
+  const left = Gesture.Fling()
+    .direction(Directions.LEFT)
+    .onEnd(() => {
+      const next = Math.min(currentIndex + 1, routes.length - 1);
+      if (routes[next] && routes[next] !== routes[currentIndex]) navigation.navigate(routes[next]);
+    });
+  const right = Gesture.Fling()
+    .direction(Directions.RIGHT)
+    .onEnd(() => {
+      const prev = Math.max(currentIndex - 1, 0);
+      if (routes[prev] && routes[prev] !== routes[currentIndex]) navigation.navigate(routes[prev]);
+    });
+  const gestures = Gesture.Simultaneous(left, right);
+  return (
+    <GestureDetector gesture={gestures}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Purchases</Text>
+        </View>
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('AddSellerEntry')}
+          >
+            <MaterialIcon name="shopping-cart" size={48} color="#60D4A9" />
+            <Text style={styles.cardTitle}>Add Seller Entry</Text>
+            <Text style={styles.cardSub}>Purchase or Payment</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('ViewSellerLedger')}
+          >
+            <MaterialIcon name="receipt-long" size={48} color="#FFB84D" />
+            <Text style={styles.cardTitle}>View Seller Ledger</Text>
+            <Text style={styles.cardSub}>Track purchases & payments</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('AdminManageSellers')}
+          >
+            <MaterialIcon name="store" size={48} color="#7DD3FC" />
+            <Text style={styles.cardTitle}>Manage Sellers</Text>
+            <Text style={styles.cardSub}>Add/Edit sellers</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            onPress={() => navigation.navigate('SellerPDFExport')}
+          >
+            <MaterialIcon name="picture-as-pdf" size={48} color="#FB7185" />
+            <Text style={styles.cardTitle}>Seller PDF Export</Text>
+            <Text style={styles.cardSub}>Seller-wise / Monthly</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    </GestureDetector>
+  );
+}
+
 export default function AdminTabs() {
   const insets = useSafeAreaInsets();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    let unsub = () => {};
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem('@current_user');
+        const user = stored ? JSON.parse(stored) : null;
+        unsub = firestore().collection('config').doc('superAdmin').onSnapshot((doc) => {
+          const username = doc?.data()?.username || 'anil';
+          const current = user?.username || user?.id;
+          setIsSuperAdmin(!!current && current === username);
+        });
+      } catch (e) {
+        setIsSuperAdmin(false);
+      }
+    })();
+    return () => unsub && unsub();
+  }, []);
   return (
     <Tab.Navigator
       screenOptions={{
@@ -243,6 +332,17 @@ export default function AdminTabs() {
           ),
         }}
       />
+      {isSuperAdmin && (
+        <Tab.Screen
+          name="Purchases"
+          component={PurchasesTab}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcon name="shopping-bag" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
       <Tab.Screen
         name="Settings"
         component={SettingsTab}
