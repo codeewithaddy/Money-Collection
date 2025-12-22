@@ -5,7 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Calendar } from 'react-native-calendars';
-import { syncLocalSellerEntriesOnce } from '../utils/sellerSync';
+import { syncSellerEntriesBidirectional } from '../utils/sellerSync';
 
 export default function AddSellerEntryScreen({ navigation }) {
   const [allowed, setAllowed] = useState(false);
@@ -59,7 +59,7 @@ export default function AddSellerEntryScreen({ navigation }) {
       );
     // default today
     setDate(getToday());
-    try { syncLocalSellerEntriesOnce(); } catch (_) {}
+    try { syncSellerEntriesBidirectional(); } catch (_) {}
     return () => {
       try { unsub && unsub(); } catch (_) {}
     };
@@ -125,7 +125,7 @@ export default function AddSellerEntryScreen({ navigation }) {
       await AsyncStorage.setItem("@local_seller_entries", JSON.stringify(list));
 
       Alert.alert("Saved", `${type === 'purchase' ? 'Purchase' : 'Payment'} saved successfully`);
-      try { syncLocalSellerEntriesOnce(); } catch (_) {}
+      try { await syncSellerEntriesBidirectional(); } catch (_) {}
       setSelectedSeller(null);
       setType("purchase");
       setDescription("");
@@ -172,6 +172,7 @@ export default function AddSellerEntryScreen({ navigation }) {
 
       <TextInput
         placeholder="Description (optional)"
+        placeholderTextColor="#666"
         value={description}
         onChangeText={setDescription}
         style={styles.input}
@@ -183,6 +184,7 @@ export default function AddSellerEntryScreen({ navigation }) {
         value={amount}
         onChangeText={setAmount}
         style={styles.input}
+        placeholderTextColor="#666"
       />
 
       <TouchableOpacity style={styles.dateSelector} onPress={() => setDateModalVisible(true)}>

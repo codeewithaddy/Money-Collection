@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, FlatList, Modal, TextInput, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, Modal, TextInput, StyleSheet, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import firestore from "@react-native-firebase/firestore";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { syncLocalSellerEntriesOnce } from "../utils/sellerSync";
+import { Calendar } from 'react-native-calendars';
+import { syncSellerEntriesBidirectional, queueSellerDelete } from "../utils/sellerSync";
 
 export default function ViewSellerLedgerScreen({ navigation }) {
   const [allowed, setAllowed] = useState(false);
@@ -17,6 +18,14 @@ export default function ViewSellerLedgerScreen({ navigation }) {
 
   const [selectedSeller, setSelectedSeller] = useState(null); // {id, name}
   const [selectedMonth, setSelectedMonth] = useState("all"); // 'all' or 'YYYY-MM'
+
+  const [editModal, setEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [editType, setEditType] = useState('purchase');
+  const [editDesc, setEditDesc] = useState('');
+  const [editAmount, setEditAmount] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editDateModal, setEditDateModal] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -57,7 +66,7 @@ export default function ViewSellerLedgerScreen({ navigation }) {
         setEntries([]);
       }
     })();
-    try { syncLocalSellerEntriesOnce(); } catch (_) {}
+    try { syncSellerEntriesBidirectional(); } catch (_) {}
     return () => {
       try { unsub && unsub(); } catch (_) {}
     };
@@ -88,6 +97,108 @@ export default function ViewSellerLedgerScreen({ navigation }) {
     return { purchased, paid, outstanding: purchased - paid };
   }, [filtered]);
 
+  const openEdit = (item) => {
+    setEditingItem(item);
+    setEditType(item.type);
+    setEditDesc(item.description || '');
+    setEditAmount(String(item.amount || ''));
+    setEditDate(item.date);
+    setEditModal(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editingItem) return;
+    const num = Number(editAmount);
+    if (isNaN(num) || num <= 0) {
+      Alert.alert('Validation', 'Enter a valid amount > 0');
+      return;
+    }
+
+    const updated = {
+      ...editingItem,
+      type: editType,
+      description: (editDesc || '').trim(),
+      amount: num,
+      date: editDate,
+      timestamp: editingItem.timestamp || new Date().toISOString(),
+    };
+
+    try {
+      // Update local list
+      const raw = await AsyncStorage.getItem('@local_seller_entries');
+      const list = raw ? JSON.parse(raw) : [];
+      const idx = list.findIndex((e) => (e.localId || e.remoteId) === (editingItem.localId || editingItem.remoteId));
+      let pendingUpdate = false;
+
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updated };
+      }
+
+      // Try remote update if we have Firestore-like ID
+      const id = editingItem.localId;
+      const isFirestoreId = id && id.length === 20 && /^[a-zA-Z0-9]+$/.test(id);
+      if (isFirestoreId) {
+        try {
+          const { localId, remoteId, ...toSync } = { ...list[idx] };
+          await firestore().collection('sellerEntries').doc(id).set(toSync);
+        } catch (e) {
+          pendingUpdate = true;
+        }
+      } else {
+        // offline local item - will be inserted on next sync
+        pendingUpdate = true;
+      }
+
+      if (pendingUpdate && idx !== -1) {
+        list[idx] = { ...list[idx], pendingUpdate: true };
+      }
+
+      await AsyncStorage.setItem('@local_seller_entries', JSON.stringify(list));
+      setEntries(list);
+      try { await syncSellerEntriesBidirectional(); } catch (_) {}
+      setEditModal(false);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to save changes');
+    }
+  };
+
+  const confirmDelete = (item) => {
+    Alert.alert(
+      'Delete Entry',
+      'Are you sure you want to delete this entry? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item) },
+      ]
+    );
+  };
+
+  const handleDelete = async (item) => {
+    try {
+      // Remove locally
+      const raw = await AsyncStorage.getItem('@local_seller_entries');
+      const list = raw ? JSON.parse(raw) : [];
+      const id = item.localId;
+      const remaining = list.filter((e) => (e.localId || e.remoteId) !== (id || item.remoteId));
+      await AsyncStorage.setItem('@local_seller_entries', JSON.stringify(remaining));
+      setEntries(remaining);
+
+      // Try remote delete, else queue
+      const isFirestoreId = id && id.length === 20 && /^[a-zA-Z0-9]+$/.test(id);
+      if (isFirestoreId) {
+        try {
+          await firestore().collection('sellerEntries').doc(id).delete();
+        } catch (_) {
+          try { await queueSellerDelete(id); } catch (_) {}
+        }
+      }
+
+      try { await syncSellerEntriesBidirectional(); } catch (_) {}
+    } catch (e) {
+      Alert.alert('Error', 'Failed to delete entry');
+    }
+  };
+
   const ListHeader = (
     <View>
       {/* Seller selector */}
@@ -114,7 +225,7 @@ export default function ViewSellerLedgerScreen({ navigation }) {
         <Icon name="search" size={20} color="#999" style={{ marginRight: 8 }} />
         <TextInput
           placeholder="Search description..."
-          placeholderTextColor="#000"
+          placeholderTextColor="#666"
           value={search}
           onChangeText={setSearch}
           style={styles.searchInput}
@@ -178,7 +289,15 @@ export default function ViewSellerLedgerScreen({ navigation }) {
           <View style={styles.entryCard}>
             <View style={styles.entryHeader}>
               <Text style={styles.entryDate}>{item.date}</Text>
-              <Text style={[styles.entryAmount, item.type === 'purchase' ? styles.amountPurchase : styles.amountPayment]}>₹{item.amount}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.entryAmount, item.type === 'purchase' ? styles.amountPurchase : styles.amountPayment]}>₹{item.amount}</Text>
+                <TouchableOpacity onPress={() => openEdit(item)} style={{ padding: 6, marginLeft: 8 }}>
+                  <Icon name="edit" size={18} color="#007AFF" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => confirmDelete(item)} style={{ padding: 6 }}>
+                  <Icon name="delete" size={18} color="#e74c3c" />
+                </TouchableOpacity>
+              </View>
             </View>
             <Text style={styles.entrySeller}>{item.sellerName}</Text>
             {!!item.description && <Text style={styles.entryDesc}>{item.description}</Text>}
@@ -249,6 +368,66 @@ export default function ViewSellerLedgerScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={editModal} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Edit Entry</Text>
+            <View style={styles.typeRow}>
+              <TouchableOpacity style={[styles.typeBtn, editType === 'purchase' && styles.typeActive]} onPress={() => setEditType('purchase')}>
+                <Text style={[styles.typeText, editType === 'purchase' && styles.typeTextActive]}>Purchase</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.typeBtn, editType === 'payment' && styles.typeActive]} onPress={() => setEditType('payment')}>
+                <Text style={[styles.typeText, editType === 'payment' && styles.typeTextActive]}>Payment</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              placeholder="Description (optional)"
+              placeholderTextColor="#666"
+              value={editDesc}
+              onChangeText={setEditDesc}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Amount"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+              value={editAmount}
+              onChangeText={setEditAmount}
+              style={styles.input}
+            />
+            <TouchableOpacity style={styles.dateSelector} onPress={() => setEditDateModal(true)}>
+              <Icon name="calendar-today" size={20} color="#007AFF" />
+              <Text style={styles.dateSelectorText}>{editDate || 'Select date'}</Text>
+              <Icon name="arrow-drop-down" size={24} color="#666" />
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModal(false)}>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={editDateModal} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Select Date</Text>
+            <Calendar
+              current={editDate}
+              onDayPress={(d) => { setEditDate(d.dateString); setEditDateModal(false); }}
+              maxDate={new Date().toISOString().slice(0,10)}
+            />
+            <TouchableOpacity style={[styles.closeBtn, { marginTop: 12 }]} onPress={() => setEditDateModal(false)}>
+              <Text style={{ color: '#fff', fontWeight: '600' }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -287,4 +466,14 @@ const styles = StyleSheet.create({
   modalItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
   closeBtn: { backgroundColor: '#007AFF', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 },
   backBtn: { marginTop: 12, backgroundColor: '#007AFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  typeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  typeBtn: { flex: 1, alignItems: 'center', backgroundColor: '#f0f0f0', padding: 10, borderRadius: 10 },
+  typeActive: { backgroundColor: '#e3f2fd' },
+  typeText: { fontWeight: '600', color: '#333' },
+  typeTextActive: { color: '#007AFF' },
+  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16, marginTop: 8, color: '#000' },
+  dateSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#eee', marginTop: 8 },
+  dateSelectorText: { flex: 1, marginLeft: 10, fontSize: 14, fontWeight: '600', color: '#333' },
+  saveBtn: { flex: 1, backgroundColor: '#2ecc71', padding: 12, borderRadius: 8, alignItems: 'center' },
+  cancelBtn: { flex: 1, backgroundColor: '#6c757d', padding: 12, borderRadius: 8, alignItems: 'center' },
 });

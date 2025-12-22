@@ -7,7 +7,7 @@ import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import Pdf from 'react-native-pdf';
 import firestore from '@react-native-firebase/firestore';
-import { syncLocalSellerEntriesOnce } from '../utils/sellerSync';
+import { syncSellerEntriesBidirectional } from '../utils/sellerSync';
 
 export default function SellerPDFExportScreen({ navigation }) {
   const [allowed, setAllowed] = useState(false);
@@ -61,7 +61,7 @@ export default function SellerPDFExportScreen({ navigation }) {
         },
         () => setSellers([])
       );
-    try { syncLocalSellerEntriesOnce(); } catch (_) {}
+    try { syncSellerEntriesBidirectional(); } catch (_) {}
     return () => { try { unsub && unsub(); } catch (_) {} };
   }, [allowed]);
 
@@ -117,6 +117,19 @@ export default function SellerPDFExportScreen({ navigation }) {
       </tr>
     `).join('');
 
+    const detailRows = filtered
+      .sort((a,b)=> new Date(a.date) - new Date(b.date))
+      .map((e, idx) => `
+        <tr>
+          <td class="text-center">${idx + 1}</td>
+          <td>${e.date || ''}</td>
+          <td>${e.sellerName || ''}</td>
+          <td class="text-center">${e.type === 'purchase' ? 'Purchase' : 'Payment'}</td>
+          <td>${(e.description || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</td>
+          <td class="text-right">${Number(e.amount || 0).toLocaleString()}</td>
+        </tr>
+      `).join('');
+
     return `
       <!DOCTYPE html>
       <html>
@@ -135,6 +148,8 @@ export default function SellerPDFExportScreen({ navigation }) {
           .text-center { text-align: center; }
           .total-row { background: #d0d0d0; font-weight: bold; }
           .summary { margin-top: 12px; border: 2px solid #000; padding: 10px; }
+          .section-title { margin-top: 14px; font-weight: bold; }
+          .footer { margin-top: 18px; text-align: center; font-size: 12px; font-weight: bold; }
         </style>
       </head>
       <body>
@@ -162,9 +177,26 @@ export default function SellerPDFExportScreen({ navigation }) {
             </tr>
           </tbody>
         </table>
+        <div class="section-title">Detailed Entries</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:6%">S.No</th>
+              <th style="width:16%">Date</th>
+              <th>Seller</th>
+              <th style="width:14%">Type</th>
+              <th>Description</th>
+              <th style="width:18%">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${detailRows || '<tr><td colspan="6" class="text-center">No entries</td></tr>'}
+          </tbody>
+        </table>
         <div class="summary">
           Generated on ${new Date().toLocaleString()}
         </div>
+        <div class="footer">vandana agencies</div>
       </body>
       </html>
     `;
@@ -242,6 +274,27 @@ export default function SellerPDFExportScreen({ navigation }) {
         <Text style={styles.title}>Seller PDF Export</Text>
       </View>
 
+      <View style={[styles.actions, { marginBottom: 8 }]}>
+        <TouchableOpacity style={[styles.actionBtn, styles.generateBtn]} onPress={generatePDF} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : (<>
+            <MaterialIcon name="picture-as-pdf" size={20} color="#fff" />
+            <Text style={styles.actionText}>Generate PDF</Text>
+          </>)}
+        </TouchableOpacity>
+        {pdfPath && (
+          <>
+            <TouchableOpacity style={[styles.actionBtn, styles.shareBtn]} onPress={sharePDF}>
+              <MaterialIcon name="share" size={20} color="#fff" />
+              <Text style={styles.actionText}>Share</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, styles.viewBtn]} onPress={() => setPdfModalVisible(true)}>
+              <MaterialIcon name="visibility" size={20} color="#fff" />
+              <Text style={styles.actionText}>View</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+
       <ScrollView style={{ flex: 1 }}>
         {/* Filters */}
         <View style={styles.filterRow}>
@@ -298,27 +351,7 @@ export default function SellerPDFExportScreen({ navigation }) {
         ))}
       </ScrollView>
 
-      {/* Actions */}
-      <View style={styles.actions}>
-        <TouchableOpacity style={[styles.actionBtn, styles.generateBtn]} onPress={generatePDF} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : (<>
-            <MaterialIcon name="picture-as-pdf" size={20} color="#fff" />
-            <Text style={styles.actionText}>Generate PDF</Text>
-          </>)}
-        </TouchableOpacity>
-        {pdfPath && (
-          <>
-            <TouchableOpacity style={[styles.actionBtn, styles.shareBtn]} onPress={sharePDF}>
-              <MaterialIcon name="share" size={20} color="#fff" />
-              <Text style={styles.actionText}>Share</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, styles.viewBtn]} onPress={() => setPdfModalVisible(true)}>
-              <MaterialIcon name="visibility" size={20} color="#fff" />
-              <Text style={styles.actionText}>View</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+      
 
       {/* PDF Modal */}
       <Modal visible={pdfModalVisible} animationType="slide">
@@ -373,7 +406,7 @@ const styles = StyleSheet.create({
   viewBtn: { backgroundColor: '#6c757d' },
   backBtn: { marginTop: 12, backgroundColor: '#007AFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
   pdfContainer: { flex: 1, backgroundColor: '#fff' },
-  pdfHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: '#3E3D52' },
+  pdfHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, paddingTop: 50, backgroundColor: '#3E3D52' },
   pdfTitle: { color: '#fff', fontWeight: '700' },
   pdfCloseBtn: { padding: 6, backgroundColor: '#00000040', borderRadius: 6 },
   pdf: { flex: 1 },

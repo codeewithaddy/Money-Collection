@@ -4,6 +4,7 @@ import firestore from "@react-native-firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import colors from "../theme/colors";
 
 export default function AdminManageSellers({ navigation }) {
   const [search, setSearch] = useState("");
@@ -176,20 +177,25 @@ export default function AdminManageSellers({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
-          <Icon name="arrow-back" size={24} color="#333" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
+          <Icon name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Manage Sellers</Text>
-        <TouchableOpacity onPress={openAdd} style={{ padding: 4 }}>
-          <Icon name="person-add" size={24} color="#2ecc71" />
+        <TouchableOpacity onPress={openAdd} style={{ padding: 10 }}>
+          <Icon name="person-add" size={26} color={colors.accent} />
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity onPress={openAdd} style={styles.addLargeBtn}>
+        <Icon name="person-add" size={22} color={colors.bg} />
+        <Text style={styles.addLargeText}>Add Seller</Text>
+      </TouchableOpacity>
+
       <View style={styles.searchContainer}>
-        <Icon name="search" size={20} color="#999" style={styles.searchIcon} />
+        <Icon name="search" size={20} color={colors.muted} style={styles.searchIcon} />
         <TextInput
           placeholder="Search sellers..."
-          placeholderTextColor="#000"
+          placeholderTextColor={colors.muted}
           value={search}
           onChangeText={setSearch}
           style={styles.searchInput}
@@ -210,17 +216,17 @@ export default function AdminManageSellers({ navigation }) {
             </View>
             <View style={styles.row}>
               <TouchableOpacity onPress={() => openEdit(item)} style={styles.iconBtn}>
-                <Icon name="edit" size={20} color="#007AFF" />
+                <Icon name="edit" size={20} color={colors.accent} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => deactivate(item.id)} style={styles.iconBtn}>
-                <Icon name="block" size={20} color="#e74c3c" />
+                <Icon name="block" size={20} color={colors.danger} />
               </TouchableOpacity>
             </View>
           </View>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Icon name="store" size={64} color="#ccc" />
+            <Icon name="store" size={64} color={colors.muted} />
             <Text style={styles.emptyText}>No sellers found</Text>
           </View>
         }
@@ -232,14 +238,14 @@ export default function AdminManageSellers({ navigation }) {
             <Text style={styles.modalTitle}>{editingSeller ? "Edit Seller" : "Add Seller"}</Text>
             <ScrollView>
               <Text style={styles.label}>Name *</Text>
-              <TextInput value={name} onChangeText={setName} placeholder="Seller name" placeholderTextColor="#999" style={styles.input} />
+              <TextInput value={name} onChangeText={setName} placeholder="Seller name" placeholderTextColor={colors.muted} style={styles.input} />
               <Text style={styles.label}>Location</Text>
-              <TextInput value={location} onChangeText={setLocation} placeholder="Location" placeholderTextColor="#999" style={styles.input} />
+              <TextInput value={location} onChangeText={setLocation} placeholder="Location" placeholderTextColor={colors.muted} style={styles.input} />
               <Text style={styles.label}>Mobile</Text>
-              <TextInput value={mobile} onChangeText={setMobile} placeholder="10-digit mobile" placeholderTextColor="#999" style={styles.input} keyboardType="phone-pad" />
+              <TextInput value={mobile} onChangeText={setMobile} placeholder="10-digit mobile" placeholderTextColor={colors.muted} style={styles.input} keyboardType="phone-pad" />
               {loading && (
                 <View style={{ alignItems: "center", marginVertical: 10 }}>
-                  <ActivityIndicator color="#2ecc71" />
+                  <ActivityIndicator color={colors.success} />
                 </View>
               )}
               <View style={styles.buttonRow}>
@@ -259,56 +265,59 @@ export default function AdminManageSellers({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: colors.border,
   },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#333" },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: colors.text },
+  addLargeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 12, marginTop: 12, backgroundColor: colors.accent, paddingVertical: 14, borderRadius: 10 },
+  addLargeText: { color: colors.bg, fontWeight: '700', fontSize: 16 },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     margin: 12,
   },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, padding: 0, color: "#000" },
+  searchInput: { flex: 1, fontSize: 15, padding: 0, color: colors.text },
   listItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     marginHorizontal: 12,
     marginVertical: 6,
     borderRadius: 8,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  sellerName: { fontSize: 16, fontWeight: "600", color: "#333" },
-  sellerSub: { fontSize: 12, color: "#666", marginTop: 3 },
+  sellerName: { fontSize: 16, fontWeight: "600", color: colors.text },
+  sellerSub: { fontSize: 12, color: colors.muted, marginTop: 3 },
   row: { flexDirection: "row", alignItems: "center" },
-  iconBtn: { padding: 8 },
+  iconBtn: { padding: 10 },
   emptyContainer: { alignItems: "center", justifyContent: "center", paddingVertical: 60 },
-  emptyText: { marginTop: 16, fontSize: 16, color: "#999" },
+  emptyText: { marginTop: 16, fontSize: 16, color: colors.muted },
   modalContainer: { flex: 1, justifyContent: "center", backgroundColor: "rgba(0,0,0,0.5)" },
-  modalBox: { backgroundColor: "#fff", margin: 20, padding: 20, borderRadius: 12, maxHeight: "80%" },
-  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 16, textAlign: "center" },
-  label: { fontSize: 14, fontWeight: "600", marginTop: 12, marginBottom: 6, color: "#333" },
-  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 4, color: "#000" },
+  modalBox: { backgroundColor: colors.surface, margin: 20, padding: 20, borderRadius: 12, maxHeight: "80%", borderWidth: 1, borderColor: colors.border },
+  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 16, textAlign: "center", color: colors.text },
+  label: { fontSize: 14, fontWeight: "600", marginTop: 12, marginBottom: 6, color: colors.text },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 4, color: colors.text, backgroundColor: colors.bg },
   buttonRow: { flexDirection: "row", gap: 10, marginTop: 20 },
   cancelBtn: { flex: 1, backgroundColor: "#6c757d", padding: 14, borderRadius: 8, alignItems: "center" },
   cancelText: { color: "#fff", fontWeight: "600", fontSize: 15 },
-  saveBtn: { flex: 1, backgroundColor: "#2ecc71", padding: 14, borderRadius: 8, alignItems: "center" },
-  saveText: { color: "#fff", fontWeight: "600", fontSize: 15 },
-  backBtn: { marginTop: 12, backgroundColor: "#007AFF", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  saveBtn: { flex: 1, backgroundColor: colors.success, padding: 14, borderRadius: 8, alignItems: "center" },
+  saveText: { color: colors.white, fontWeight: "600", fontSize: 15 },
+  backBtn: { marginTop: 12, backgroundColor: colors.accent, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
 });

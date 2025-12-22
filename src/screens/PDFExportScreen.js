@@ -48,6 +48,8 @@ const PDFExportScreen = ({ navigation }) => {
     try {
       const stored = await AsyncStorage.getItem("@local_collections");
       const allCollections = stored ? JSON.parse(stored) : [];
+      const onshopStored = await AsyncStorage.getItem("@local_onshop");
+      const allOnShop = onshopStored ? JSON.parse(onshopStored) : [];
 
       // Calculate 30-day cutoff
       const cutoffDate = (() => {
@@ -56,12 +58,11 @@ const PDFExportScreen = ({ navigation }) => {
         return date.toISOString().split('T')[0];
       })();
 
-      // Filter to last 30 days and get unique dates
-      const recentDates = [...new Set(
-        allCollections
-          .filter(c => c.date >= cutoffDate)
-          .map(c => c.date)
-      )].sort((a, b) => new Date(b) - new Date(a));
+      // Filter to last 30 days and get unique dates (Collections + OnShop)
+      const datesSet = new Set();
+      allCollections.filter(c => c.date >= cutoffDate).forEach(c => datesSet.add(c.date));
+      allOnShop.filter(o => o.date >= cutoffDate).forEach(o => datesSet.add(o.date));
+      const recentDates = [...datesSet].sort((a, b) => new Date(b) - new Date(a));
 
       setAvailableDates(recentDates);
     } catch (error) {
@@ -73,11 +74,14 @@ const PDFExportScreen = ({ navigation }) => {
     try {
       const stored = await AsyncStorage.getItem("@local_collections");
       const allCollections = stored ? JSON.parse(stored) : [];
+      const onshopStored = await AsyncStorage.getItem("@local_onshop");
+      const allOnShop = onshopStored ? JSON.parse(onshopStored) : [];
 
       // Filter collections for selected date
       const dateCollections = allCollections.filter(c => c.date === selectedDate);
+      const dateOnShop = allOnShop.filter(o => o.date === selectedDate);
 
-      if (dateCollections.length === 0) {
+      if (dateCollections.length === 0 && dateOnShop.length === 0) {
         setReportData(null);
         return;
       }
@@ -127,6 +131,33 @@ const PDFExportScreen = ({ navigation }) => {
         }
       });
 
+      // Merge OnShop entries as a pseudo-counter "On-Shop"
+      if (dateOnShop.length) {
+        const key = 'On-Shop';
+        if (!grouped[key]) {
+          grouped[key] = {
+            counterName: key,
+            totalAmount: 0,
+            cash: 0,
+            online: 0,
+            users: {},
+          };
+        }
+        const counter = grouped[key];
+        dateOnShop.forEach(entry => {
+          const { amount, mode, receivedBy } = entry;
+          counter.totalAmount += amount;
+          if (mode === 'offline') counter.cash += amount; else counter.online += amount;
+          const uname = receivedBy || 'Unknown';
+          if (!counter.users[uname]) {
+            counter.users[uname] = { workerName: uname, total: 0, cash: 0, online: 0 };
+          }
+          const user = counter.users[uname];
+          user.total += amount;
+          if (mode === 'offline') user.cash += amount; else user.online += amount;
+        });
+      }
+
       // Convert to array and sort
       const countersArray = Object.values(grouped).sort((a, b) =>
         a.counterName.localeCompare(b.counterName)
@@ -150,7 +181,7 @@ const PDFExportScreen = ({ navigation }) => {
         grandTotal,
         totalCash,
         totalOnline,
-        collectionsCount: dateCollections.length,
+        collectionsCount: dateCollections.length + dateOnShop.length,
       });
     } catch (error) {
       console.error("Load report data error:", error);
@@ -621,6 +652,45 @@ const PDFExportScreen = ({ navigation }) => {
         <Text style={styles.title}>PDF Export</Text>
       </View>
 
+      {reportData && (
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.generateBtn]}
+            onPress={generatePDF}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <MaterialIcon name="picture-as-pdf" size={20} color="#fff" />
+                <Text style={styles.actionBtnText}>Generate PDF</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {pdfPath && (
+            <>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.shareBtn]}
+                onPress={sharePDF}
+              >
+                <MaterialIcon name="share" size={20} color="#fff" />
+                <Text style={styles.actionBtnText}>Share PDF</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.viewBtn]}
+                onPress={() => setPdfModalVisible(true)}
+              >
+                <MaterialIcon name="visibility" size={20} color="#fff" />
+                <Text style={styles.actionBtnText}>View PDF</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      )}
+
       {/* Date Selector */}
       <TouchableOpacity
         style={styles.dateSelector}
@@ -711,45 +781,7 @@ const PDFExportScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Action Buttons */}
-      {reportData && (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.generateBtn]}
-            onPress={generatePDF}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <MaterialIcon name="picture-as-pdf" size={20} color="#fff" />
-                <Text style={styles.actionBtnText}>Generate PDF</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {pdfPath && (
-            <>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.shareBtn]}
-                onPress={sharePDF}
-              >
-                <MaterialIcon name="share" size={20} color="#fff" />
-                <Text style={styles.actionBtnText}>Share PDF</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.viewBtn]}
-                onPress={() => setPdfModalVisible(true)}
-              >
-                <MaterialIcon name="visibility" size={20} color="#fff" />
-                <Text style={styles.actionBtnText}>View PDF</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
+      
 
       {/* Date Selection Modal */}
       <Modal visible={dateModalVisible} animationType="slide" transparent={true}>
