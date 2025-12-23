@@ -91,6 +91,8 @@ const PDFExportScreen = ({ navigation }) => {
 
       // Group by counter → amount → mode → users
       const grouped = {};
+      let onShopCashCalc = 0;
+      let onShopOnlineCalc = 0;
 
       dateCollections.forEach(col => {
         const { counterName, amount, mode, workerName } = col;
@@ -133,31 +135,11 @@ const PDFExportScreen = ({ navigation }) => {
           user.online += amount;
         }
       });
-
-      // Merge OnShop entries as a pseudo-counter "On-Shop"
+      
       if (dateOnShop.length) {
-        const key = 'On-Shop';
-        if (!grouped[key]) {
-          grouped[key] = {
-            counterName: key,
-            totalAmount: 0,
-            cash: 0,
-            online: 0,
-            users: {},
-          };
-        }
-        const counter = grouped[key];
         dateOnShop.forEach(entry => {
-          const { amount, mode, receivedBy } = entry;
-          counter.totalAmount += amount;
-          if (mode === 'offline') counter.cash += amount; else counter.online += amount;
-          const uname = receivedBy || 'Unknown';
-          if (!counter.users[uname]) {
-            counter.users[uname] = { workerName: uname, total: 0, cash: 0, online: 0 };
-          }
-          const user = counter.users[uname];
-          user.total += amount;
-          if (mode === 'offline') user.cash += amount; else user.online += amount;
+          const { amount, mode } = entry;
+          if (mode === 'offline') onShopCashCalc += amount; else onShopOnlineCalc += amount;
         });
       }
 
@@ -174,13 +156,23 @@ const PDFExportScreen = ({ navigation }) => {
       });
 
       // Calculate totals
-      const grandTotal = countersArray.reduce((sum, c) => sum + c.totalAmount, 0);
-      const totalCash = countersArray.reduce((sum, c) => sum + c.cash, 0);
-      const totalOnline = countersArray.reduce((sum, c) => sum + c.online, 0);
+      const countersGrandTotal = countersArray.reduce((sum, c) => sum + c.totalAmount, 0);
+      const countersCash = countersArray.reduce((sum, c) => sum + c.cash, 0);
+      const countersOnline = countersArray.reduce((sum, c) => sum + c.online, 0);
+      const onShopTotal = onShopCashCalc + onShopOnlineCalc;
+      const grandTotal = countersGrandTotal + onShopTotal;
+      const totalCash = countersCash + onShopCashCalc;
+      const totalOnline = countersOnline + onShopOnlineCalc;
 
       setReportData({
         date: selectedDate,
         counters: countersArray,
+        countersGrandTotal,
+        countersCash,
+        countersOnline,
+        onShopCash: onShopCashCalc,
+        onShopOnline: onShopOnlineCalc,
+        onShopTotal,
         grandTotal,
         totalCash,
         totalOnline,
@@ -219,7 +211,7 @@ const PDFExportScreen = ({ navigation }) => {
   const generateHTML = () => {
     if (!reportData) return '';
 
-    const { date, counters, grandTotal, totalCash, totalOnline, collectionsCount } = reportData;
+    const { date, counters, grandTotal, totalCash, totalOnline, collectionsCount, countersGrandTotal, countersCash, countersOnline, onShopCash, onShopOnline, onShopTotal } = reportData;
 
     // Calculate worker totals
     const workerTotals = {};
@@ -232,10 +224,6 @@ const PDFExportScreen = ({ navigation }) => {
       });
     });
 
-    // Determine if landscape is needed
-    const totalEntries = counters.reduce((sum, c) => sum + c.users.length, 0);
-    const isLandscape = totalEntries > 15;
-
     let html = `
       <!DOCTYPE html>
       <html>
@@ -243,17 +231,20 @@ const PDFExportScreen = ({ navigation }) => {
         <meta charset="UTF-8">
         <style>
           @page {
-            size: A4 ${isLandscape ? 'landscape' : 'portrait'};
-            margin: 15mm;
+            size: A4 portrait;
+            margin: 10mm;
           }
           
           body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 10px;
+            font-size: 9px;
             line-height: 1.4;
             margin: 0;
             padding: 0;
           }
+
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
           
           .header {
             text-align: center;
@@ -287,19 +278,19 @@ const PDFExportScreen = ({ navigation }) => {
           
           th, td {
             border: 1px solid #000;
-            padding: 6px 8px;
+            padding: 5px 6px;
             text-align: left;
           }
           
           th {
             background-color: #e0e0e0;
             font-weight: bold;
-            font-size: 10px;
+            font-size: 9px;
             text-align: center;
           }
           
           td {
-            font-size: 9px;
+            font-size: 8.5px;
           }
           
           .text-right {
@@ -323,7 +314,7 @@ const PDFExportScreen = ({ navigation }) => {
           .total-row {
             background-color: #d0d0d0;
             font-weight: bold;
-            font-size: 11px;
+            font-size: 10px;
           }
           
           .summary-box {
@@ -381,12 +372,12 @@ const PDFExportScreen = ({ navigation }) => {
         <table>
           <thead>
             <tr>
-              <th style="width: 5%">S.No</th>
-              <th style="width: 25%">Counter Name</th>
+              <th style="width: 6%">S.No</th>
+              <th style="width: 34%">Counter Name</th>
               <th style="width: 15%">Cash (₹)</th>
               <th style="width: 15%">Online (₹)</th>
               <th style="width: 15%">Total (₹)</th>
-              <th style="width: 25%">To Whom</th>
+              <th style="width: 15%">To Whom</th>
             </tr>
           </thead>
           <tbody>
@@ -423,8 +414,22 @@ const PDFExportScreen = ({ navigation }) => {
       }
     });
 
-    // Grand total row
+    // Totals rows
     html += `
+        <tr class="total-row">
+          <td colspan="2" class="text-center"><strong>TOTAL (Counters Only)</strong></td>
+          <td class="text-right"><strong>${countersCash.toLocaleString()}</strong></td>
+          <td class="text-right"><strong>${countersOnline.toLocaleString()}</strong></td>
+          <td class="text-right"><strong>${countersGrandTotal.toLocaleString()}</strong></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td colspan="2" class="text-center"><strong>ONSHOP</strong></td>
+          <td class="text-right"><strong>${onShopCash.toLocaleString()}</strong></td>
+          <td class="text-right"><strong>${onShopOnline.toLocaleString()}</strong></td>
+          <td class="text-right"><strong>${onShopTotal.toLocaleString()}</strong></td>
+          <td></td>
+        </tr>
         <tr class="total-row">
           <td colspan="2" class="text-center"><strong>GRAND TOTAL</strong></td>
           <td class="text-right"><strong>${totalCash.toLocaleString()}</strong></td>
@@ -457,7 +462,7 @@ const PDFExportScreen = ({ navigation }) => {
       </div>
       
       <div style="margin-top: 12px; border-top: 1px solid #999; padding-top: 8px;">
-        <div style="font-weight: bold; margin-bottom: 6px;">Amount by Workers:</div>
+        <div style="font-weight: bold; margin-bottom: 6px;">Amount by Workers (Counters only):</div>
         ${Object.entries(workerTotals).map(([worker, amount]) => `
           <div class="summary-item">
             <span>${worker}:</span>

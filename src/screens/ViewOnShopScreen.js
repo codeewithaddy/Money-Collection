@@ -11,6 +11,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import { Calendar } from 'react-native-calendars';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import firestore from "@react-native-firebase/firestore";
@@ -34,6 +35,12 @@ const ViewOnShopScreen = ({ navigation }) => {
   const [pendingChanges, setPendingChanges] = useState(false);
   const [lastSynced, setLastSynced] = useState(null);
   const [todayDate, setTodayDate] = useState("");
+  const [filterType, setFilterType] = useState("all"); // all, today, date, range
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [dateModalVisible, setDateModalVisible] = useState(false);
+  const [rangeStage, setRangeStage] = useState(null); // null | 'start' | 'end'
 
   const getTodayIST = () => {
     const now = new Date();
@@ -134,30 +141,6 @@ const ViewOnShopScreen = ({ navigation }) => {
 
       setLocalOnShop(filtered);
 
-      // Group by date
-      const grouped = {};
-      filtered.forEach((item) => {
-        if (!grouped[item.date]) {
-          grouped[item.date] = [];
-        }
-        grouped[item.date].push(item);
-      });
-
-      // Convert to sections format
-      const sectionsData = Object.keys(grouped)
-        .sort((a, b) => new Date(b) - new Date(a))
-        .map((date) => ({
-          title: date,
-          data: grouped[date],
-        }));
-
-      setSections(sectionsData);
-
-      // Calculate totals
-      const cash = filtered.filter((c) => c.mode === "offline").reduce((sum, c) => sum + c.amount, 0);
-      const online = filtered.filter((c) => c.mode === "online").reduce((sum, c) => sum + c.amount, 0);
-      setTotals({ cash, online, grand: cash + online });
-
       // Check last synced
       const lastSync = await AsyncStorage.getItem("@last_synced_onshop");
       setLastSynced(lastSync);
@@ -170,6 +153,44 @@ const ViewOnShopScreen = ({ navigation }) => {
     const unsubscribe = navigation.addListener("focus", loadData);
     return unsubscribe;
   }, [navigation]);
+
+  useEffect(() => {
+    applyFilter();
+  }, [localOnShop, filterType, selectedDate, startDate, endDate]);
+
+  const applyFilter = () => {
+    let base = [...localOnShop];
+
+    if (filterType === 'today') {
+      base = base.filter(i => i.date === todayDate);
+    } else if (filterType === 'date' && selectedDate) {
+      base = base.filter(i => i.date === selectedDate);
+    } else if (filterType === 'range' && startDate && endDate) {
+      base = base.filter(i => {
+        const d = new Date(i.date);
+        return d >= new Date(startDate) && d <= new Date(endDate);
+      });
+    }
+
+    // Group by date
+    const grouped = {};
+    base.forEach((item) => {
+      if (!grouped[item.date]) {
+        grouped[item.date] = [];
+      }
+      grouped[item.date].push(item);
+    });
+
+    const sectionsData = Object.keys(grouped)
+      .sort((a, b) => new Date(b) - new Date(a))
+      .map((date) => ({ title: date, data: grouped[date] }));
+
+    setSections(sectionsData);
+
+    const cash = base.filter((c) => c.mode === "offline").reduce((sum, c) => sum + c.amount, 0);
+    const online = base.filter((c) => c.mode === "online").reduce((sum, c) => sum + c.amount, 0);
+    setTotals({ cash, online, grand: cash + online });
+  };
 
   const toggleDate = (date) => {
     setExpandedDates((prev) => ({
@@ -501,11 +522,21 @@ const ViewOnShopScreen = ({ navigation }) => {
           <Icon name="store" size={32} color={colors.accent} />
           <Text style={styles.title}>OnShop Collections</Text>
         </View>
-        <TouchableOpacity style={styles.syncBtn} onPress={syncToFirebase}>
-          <Icon name="sync" size={20} color={colors.white} />
-          <Text style={styles.syncBtnText}>Sync</Text>
-          {pendingChanges && <View style={styles.pendingDot} />}
-        </TouchableOpacity>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <TouchableOpacity style={styles.filterBtn} onPress={() => setDateModalVisible(true)}>
+            <Icon name="calendar-today" size={18} color={colors.accent} />
+            <Text style={styles.filterText}>{
+              filterType === 'today' ? 'Today' :
+              filterType === 'date' && selectedDate ? selectedDate :
+              filterType === 'range' && startDate && endDate ? `${startDate} to ${endDate}` : 'All Dates'
+            }</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.syncBtn} onPress={syncToFirebase}>
+            <Icon name="sync" size={20} color={colors.white} />
+            <Text style={styles.syncBtnText}>Sync</Text>
+            {pendingChanges && <View style={styles.pendingDot} />}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.totalsCard}>
@@ -611,6 +642,114 @@ const ViewOnShopScreen = ({ navigation }) => {
                 <Text style={styles.saveBtnText}>Save Changes</Text>
               </TouchableOpacity>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date Filter Modal */}
+      <Modal
+        visible={dateModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDateModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.dateModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter OnShop</Text>
+              <TouchableOpacity onPress={() => setDateModalVisible(false)}>
+                <Icon name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{padding: 12}}>
+              <View style={{flexDirection: 'row', gap: 8, marginBottom: 12}}>
+                <TouchableOpacity
+                  style={[styles.quickBtn, filterType === 'all' && styles.quickBtnActive]}
+                  onPress={() => { setFilterType('all'); setSelectedDate(null); setStartDate(null); setEndDate(null); setDateModalVisible(false); }}
+                >
+                  <Text style={[styles.quickBtnText, filterType === 'all' && styles.quickBtnTextActive]}>All Dates</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.quickBtn, filterType === 'today' && styles.quickBtnActive]}
+                  onPress={() => { setFilterType('today'); setSelectedDate(null); setStartDate(null); setEndDate(null); setDateModalVisible(false); }}
+                >
+                  <Text style={[styles.quickBtnText, filterType === 'today' && styles.quickBtnTextActive]}>Today</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Calendar
+                current={selectedDate || todayDate}
+                onDayPress={(day) => {
+                  if (rangeStage === 'start' || rangeStage === 'end') {
+                    if (rangeStage === 'start') {
+                      setStartDate(day.dateString);
+                      setEndDate(null);
+                      setRangeStage('end');
+                    } else {
+                      const s = startDate || day.dateString;
+                      const e = day.dateString;
+                      const start = new Date(s);
+                      const end = new Date(e);
+                      if (end < start) {
+                        setStartDate(e);
+                        setEndDate(s);
+                      } else {
+                        setEndDate(e);
+                      }
+                      setFilterType('range');
+                      setSelectedDate(null);
+                      setRangeStage(null);
+                      setDateModalVisible(false);
+                    }
+                  } else {
+                    setSelectedDate(day.dateString);
+                    setFilterType('date');
+                    setStartDate(null);
+                    setEndDate(null);
+                    setDateModalVisible(false);
+                  }
+                }}
+                markedDates={{
+                  ...(selectedDate ? { [selectedDate]: { selected: true, selectedColor: colors.accent, selectedTextColor: colors.white } } : {}),
+                  ...(todayDate ? { [todayDate]: { marked: true, dotColor: colors.success } } : {}),
+                  ...(startDate ? { [startDate]: { startingDay: true, color: '#E5E7EB', textColor: '#111827' } } : {}),
+                  ...(endDate ? { [endDate]: { endingDay: true, color: '#E5E7EB', textColor: '#111827' } } : {}),
+                }}
+                maxDate={todayDate}
+                minDate={(() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split('T')[0]; })()}
+                theme={{
+                  selectedDayBackgroundColor: colors.accent,
+                  selectedDayTextColor: colors.white,
+                  todayTextColor: colors.success,
+                  arrowColor: colors.accent,
+                  monthTextColor: colors.text,
+                  textMonthFontWeight: '700',
+                  textDayFontSize: 16,
+                  textMonthFontSize: 18,
+                }}
+              />
+
+              <View style={{flexDirection: 'row', gap: 8, marginTop: 12}}>
+                {rangeStage === null ? (
+                  <TouchableOpacity style={styles.rangeBtn} onPress={() => { setRangeStage('start'); setSelectedDate(null); }}>
+                    <Text style={styles.rangeBtnText}>Pick Range</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <>
+                    <TouchableOpacity style={styles.rangeBtn} onPress={() => setRangeStage('start')}>
+                      <Text style={styles.rangeBtnText}>Start: {startDate || '-'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.rangeBtn} onPress={() => setRangeStage('end')}>
+                      <Text style={styles.rangeBtnText}>End: {endDate || '-'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.clearBtn} onPress={() => { setRangeStage(null); setStartDate(null); setEndDate(null); }}>
+                      <Text style={styles.clearBtnText}>Clear</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </View>
           </View>
         </View>
       </Modal>
@@ -873,6 +1012,77 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E1E2E',
+    borderWidth: 1,
+    borderColor: '#4A4560',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  filterText: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: '#6DD5B4',
+    fontWeight: '600',
+  },
+  dateModalContent: {
+    backgroundColor: '#2C2B3E',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  quickBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#1E1E2E',
+    borderWidth: 1,
+    borderColor: '#4A4560',
+  },
+  quickBtnActive: {
+    backgroundColor: '#6DD5B4',
+    borderColor: '#6DD5B4',
+  },
+  quickBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  quickBtnTextActive: {
+    color: '#fff',
+  },
+  rangeBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#1E1E2E',
+    borderWidth: 1,
+    borderColor: '#4A4560',
+  },
+  rangeBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  clearBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: '#4A4560',
+  },
+  clearBtnText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

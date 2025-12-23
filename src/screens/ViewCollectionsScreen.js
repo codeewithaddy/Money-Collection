@@ -148,8 +148,10 @@ const ViewCollectionsScreen = ({ navigation }) => {
       }
       
       // Filter by selected date
-      if (selectedDate) {
-        filtered = filtered.filter((c) => c.date === selectedDate);
+      // For non-admin users, default to today's date when no date is selected
+      const effectiveDate = selectedDate || (userData.role !== "admin" ? getTodayIST() : null);
+      if (effectiveDate) {
+        filtered = filtered.filter((c) => c.date === effectiveDate);
       }
 
       setLocalCollections(filtered);

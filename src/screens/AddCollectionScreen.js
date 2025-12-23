@@ -16,6 +16,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Calendar } from 'react-native-calendars';
+import colors from "../theme/colors";
+import typography from "../theme/typography";
+import GradientBackground from "../components/GradientBackground";
 
 export default function AddCollectionScreen({ navigation }) {
   const [counters, setCounters] = useState([]);
@@ -181,9 +184,10 @@ export default function AddCollectionScreen({ navigation }) {
   };
 
   return (
+    <GradientBackground>
     <View style={styles.container}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Icon name="arrow-back" size={24} color="#333" />
+        <Icon name="arrow-back" size={24} color={colors.accent} />
       </TouchableOpacity>
 
       <View style={styles.header}>
@@ -199,10 +203,10 @@ export default function AddCollectionScreen({ navigation }) {
         style={styles.dropdownBtn}
         onPress={() => setModalVisible(true)}
       >
-        <Text style={{ fontSize: 16 }}>
+        <Text style={{ fontSize: 16, color: colors.text }}>
           {selectedCounter ? selectedCounter.name : "Select Counter"}
         </Text>
-        <Icon name="arrow-drop-down" size={28} color="#333" />
+        <Icon name="arrow-drop-down" size={28} color={colors.accent} />
       </TouchableOpacity>
 
       {/* MODAL DROPDOWN */}
@@ -226,7 +230,7 @@ export default function AddCollectionScreen({ navigation }) {
                     setModalVisible(false);
                   }}
                 >
-                  <Text>{item.name}</Text>
+                  <Text style={{color: colors.text}}>{item.name}</Text>
                 </TouchableOpacity>
               )}
               nestedScrollEnabled
@@ -237,7 +241,7 @@ export default function AddCollectionScreen({ navigation }) {
               onPress={() => setModalVisible(false)}
               style={styles.closeBtn}
             >
-              <Text style={{ color: "#fff" }}>Close</Text>
+              <Text style={{ color: colors.white }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -250,13 +254,13 @@ export default function AddCollectionScreen({ navigation }) {
             style={styles.dateSelector}
             onPress={() => setDateModalVisible(true)}
           >
-            <Icon name="calendar-today" size={20} color="#007AFF" />
+            <Icon name="calendar-today" size={20} color={colors.accent} />
             <Text style={styles.dateSelectorText}>
               {selectedDate === getTodayIST() 
                 ? `Today - ${selectedDate}` 
                 : selectedDate}
             </Text>
-            <Icon name="arrow-drop-down" size={24} color="#666" />
+            <Icon name="arrow-drop-down" size={24} color={colors.muted} />
           </TouchableOpacity>
 
           {/* Date Selection Modal with Calendar */}
@@ -315,7 +319,7 @@ export default function AddCollectionScreen({ navigation }) {
                     onPress={() => setDateModalVisible(false)}
                     style={styles.closeBtn}
                   >
-                    <Text style={{ color: "#fff", fontWeight: "600" }}>Close</Text>
+                    <Text style={{ color: colors.white, fontWeight: "600" }}>Close</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -348,9 +352,10 @@ export default function AddCollectionScreen({ navigation }) {
       </View>
 
       <TouchableOpacity style={styles.saveBtn} onPress={saveCollection}>
-        <Text style={{ color: "#fff", fontSize: 16 }}>Save Collection</Text>
+        <Text style={{ color: colors.white, fontSize: 16 }}>Save Collection</Text>
       </TouchableOpacity>
     </View>
+    </GradientBackground>
   );
 }
 
