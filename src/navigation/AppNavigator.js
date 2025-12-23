@@ -23,6 +23,8 @@ import AdminManageSellers from "../screens/AdminManageSellers";
 import AddSellerEntryScreen from "../screens/AddSellerEntryScreen";
 import ViewSellerLedgerScreen from "../screens/ViewSellerLedgerScreen";
 import SellerPDFExportScreen from "../screens/SellerPDFExportScreen";
+import AddExpenseScreen from "../screens/AddExpenseScreen";
+import ViewExpensesScreen from "../screens/ViewExpensesScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -147,6 +149,8 @@ export default function AppNavigator() {
         <Stack.Screen name="AddSellerEntry" component={AddSellerEntryScreen} />
         <Stack.Screen name="ViewSellerLedger" component={ViewSellerLedgerScreen} />
         <Stack.Screen name="SellerPDFExport" component={SellerPDFExportScreen} />
+        <Stack.Screen name="AddExpense" component={AddExpenseScreen} />
+        <Stack.Screen name="ViewExpenses" component={ViewExpensesScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

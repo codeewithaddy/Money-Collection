@@ -43,6 +43,15 @@ export const queueSellerDelete = async (docId) => {
     const list = raw ? JSON.parse(raw) : [];
     if (!list.includes(docId)) list.push(docId);
     await AsyncStorage.setItem('@pending_seller_deletes', JSON.stringify(list));
+    // also add to local tombstones so UI doesn't rehydrate from remote before delete completes
+    try {
+      const tombRaw = await AsyncStorage.getItem('@local_seller_tombstones');
+      const tombs = tombRaw ? JSON.parse(tombRaw) : [];
+      if (!tombs.includes(docId)) {
+        tombs.push(docId);
+        await AsyncStorage.setItem('@local_seller_tombstones', JSON.stringify(tombs));
+      }
+    } catch (_) {}
     return true;
   } catch (_) {
     return false;
@@ -88,8 +97,9 @@ export const syncSellerEntriesBidirectional = async () => {
       } catch (_) {}
     }
 
-    // Process pending deletes
+    // Process pending deletes and keep tombstones aligned
     let deletedCount = 0;
+    let remainingDeletes = [];
     try {
       const delRaw = await AsyncStorage.getItem('@pending_seller_deletes');
       const delList = delRaw ? JSON.parse(delRaw) : [];
@@ -103,6 +113,7 @@ export const syncSellerEntriesBidirectional = async () => {
             nextDel.push(id);
           }
         }
+        remainingDeletes = nextDel;
         await AsyncStorage.setItem('@pending_seller_deletes', JSON.stringify(nextDel));
       }
     } catch (_) {}
@@ -111,13 +122,28 @@ export const syncSellerEntriesBidirectional = async () => {
       await AsyncStorage.setItem('@local_seller_entries', JSON.stringify(allLocal));
     }
 
-    // Download all remote entries and replace local cache
+    // Download all remote entries and replace local cache (filter out tombstoned IDs)
     let downloaded = 0;
     try {
       const snapshot = await firestore().collection('sellerEntries').get();
       const remote = snapshot.docs.map((d) => ({ ...d.data(), localId: d.id, remoteId: d.id }));
       downloaded = remote.length;
-      await AsyncStorage.setItem('@local_seller_entries', JSON.stringify(remote));
+
+      // Load tombstones (prefer remainingDeletes as source of truth)
+      let tombs = [];
+      try {
+        const tombRaw = await AsyncStorage.getItem('@local_seller_tombstones');
+        tombs = tombRaw ? JSON.parse(tombRaw) : [];
+      } catch (_) {}
+      const activeTombs = Array.isArray(remainingDeletes) ? remainingDeletes : tombs;
+
+      const filtered = Array.isArray(activeTombs) && activeTombs.length
+        ? remote.filter((r) => !activeTombs.includes(r.localId))
+        : remote;
+
+      await AsyncStorage.setItem('@local_seller_entries', JSON.stringify(filtered));
+      await AsyncStorage.setItem('@local_seller_tombstones', JSON.stringify(activeTombs));
+
       const syncTime = new Date().toISOString();
       await AsyncStorage.setItem('@last_seller_synced', syncTime);
     } catch (_) {}

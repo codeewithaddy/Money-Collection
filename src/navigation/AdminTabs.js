@@ -144,6 +144,27 @@ function ReportsTab({ navigation }) {
             <Text style={styles.cardTitle}>PDF Export</Text>
             <Text style={styles.cardSub}>Generate reports</Text>
           </TouchableOpacity>
+
+          {/* Super Admin only: Expenses */}
+          {/** We cannot read isSuperAdmin here directly; use a simple route to AddExpense/ViewExpenses via navigation.
+               The actual screen access is guarded inside those screens. */}
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => navigation.navigate('AddExpense')}
+          >
+            <View style={styles.iconCircle}><MaterialIcon name="money-off" size={28} color={colors.accent} /></View>
+            <Text style={styles.cardTitle}>Add Expense</Text>
+            <Text style={styles.cardSub}>Record daily expenditure</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => navigation.navigate('ViewExpenses')}
+          >
+            <View style={styles.iconCircle}><MaterialIcon name="receipt" size={28} color={colors.accent} /></View>
+            <Text style={styles.cardTitle}>View Expenses</Text>
+            <Text style={styles.cardSub}>Super Admin only</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
     </GestureDetector>

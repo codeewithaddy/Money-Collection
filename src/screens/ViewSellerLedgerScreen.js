@@ -29,6 +29,7 @@ export default function ViewSellerLedgerScreen({ navigation }) {
   const [editAmount, setEditAmount] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editDateModal, setEditDateModal] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -83,6 +84,29 @@ export default function ViewSellerLedgerScreen({ navigation }) {
     });
     return Array.from(set).sort((a, b) => (a > b ? -1 : 1));
   }, [entries]);
+
+  const refreshEntries = async () => {
+    try {
+      const raw = await AsyncStorage.getItem('@local_seller_entries');
+      const list = raw ? JSON.parse(raw) : [];
+      setEntries(Array.isArray(list) ? list : []);
+    } catch (_) {
+      setEntries([]);
+    }
+  };
+
+  const manualSync = async () => {
+    try {
+      setSyncing(true);
+      await syncSellerEntriesBidirectional();
+      await refreshEntries();
+      Alert.alert('Sync Completed', 'Seller ledger has been synchronized.');
+    } catch (e) {
+      Alert.alert('Sync Failed', 'Could not complete sync. Try again later.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     return entries
@@ -285,9 +309,14 @@ export default function ViewSellerLedgerScreen({ navigation }) {
           <Icon name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Seller Ledger</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('SellerPDFExport')} style={{ padding: 4 }}>
-          <Icon name="picture-as-pdf" size={24} color={colors.danger} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={manualSync} style={{ padding: 4, marginRight: 8 }} disabled={syncing}>
+            <Icon name="sync" size={22} color={syncing ? colors.muted : colors.accent} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('SellerPDFExport')} style={{ padding: 4 }}>
+            <Icon name="picture-as-pdf" size={24} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList

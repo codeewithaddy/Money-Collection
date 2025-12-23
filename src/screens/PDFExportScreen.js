@@ -79,12 +79,15 @@ const PDFExportScreen = ({ navigation }) => {
       const allCollections = stored ? JSON.parse(stored) : [];
       const onshopStored = await AsyncStorage.getItem("@local_onshop");
       const allOnShop = onshopStored ? JSON.parse(onshopStored) : [];
+      const expenseStored = await AsyncStorage.getItem("@local_expenses");
+      const allExpenses = expenseStored ? JSON.parse(expenseStored) : [];
 
       // Filter collections for selected date
       const dateCollections = allCollections.filter(c => c.date === selectedDate);
       const dateOnShop = allOnShop.filter(o => o.date === selectedDate);
+      const dateExpenses = allExpenses.filter(e => e.date === selectedDate);
 
-      if (dateCollections.length === 0 && dateOnShop.length === 0) {
+      if (dateCollections.length === 0 && dateOnShop.length === 0 && dateExpenses.length === 0) {
         setReportData(null);
         return;
       }
@@ -143,6 +146,17 @@ const PDFExportScreen = ({ navigation }) => {
         });
       }
 
+      // Prepare OnShop entries list (sorted by timestamp if available)
+      const onShopEntries = dateOnShop
+        .slice()
+        .sort((a, b) => new Date(a.timestamp || `${a.date}T00:00:00Z`) - new Date(b.timestamp || `${b.date}T00:00:00Z`));
+
+      // Prepare Expenses list & total (do NOT include in grand total)
+      const expenses = dateExpenses
+        .slice()
+        .sort((a, b) => new Date(a.timestamp || `${a.date}T00:00:00Z`) - new Date(b.timestamp || `${b.date}T00:00:00Z`));
+      const expensesTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+
       // Convert to array and sort
       const countersArray = Object.values(grouped).sort((a, b) =>
         a.counterName.localeCompare(b.counterName)
@@ -177,6 +191,9 @@ const PDFExportScreen = ({ navigation }) => {
         totalCash,
         totalOnline,
         collectionsCount: dateCollections.length + dateOnShop.length,
+        onShopEntries,
+        expenses,
+        expensesTotal,
       });
     } catch (error) {
       console.error("Load report data error:", error);
@@ -211,7 +228,7 @@ const PDFExportScreen = ({ navigation }) => {
   const generateHTML = () => {
     if (!reportData) return '';
 
-    const { date, counters, grandTotal, totalCash, totalOnline, collectionsCount, countersGrandTotal, countersCash, countersOnline, onShopCash, onShopOnline, onShopTotal } = reportData;
+    const { date, counters, grandTotal, totalCash, totalOnline, collectionsCount, countersGrandTotal, countersCash, countersOnline, onShopCash, onShopOnline, onShopTotal, onShopEntries = [], expenses = [], expensesTotal = 0 } = reportData;
 
     // Calculate worker totals
     const workerTotals = {};
@@ -423,18 +440,67 @@ const PDFExportScreen = ({ navigation }) => {
           <td class="text-right"><strong>${countersGrandTotal.toLocaleString()}</strong></td>
           <td></td>
         </tr>
+      </tbody>
+    </table>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 6%">S.No</th>
+          <th style="width: 34%">OnShop Name</th>
+          <th style="width: 15%">Mode</th>
+          <th style="width: 15%">Amount (₹)</th>
+          <th style="width: 30%">Received By</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${onShopEntries.length ? onShopEntries.map((e, i) => `
+          <tr>
+            <td class="text-center">${i + 1}</td>
+            <td>${e.customerName || '-'}</td>
+            <td class="text-center">${e.mode === 'offline' ? 'Cash' : 'Online'}</td>
+            <td class="text-right">${Number(e.amount || 0).toLocaleString()}</td>
+            <td>${e.receivedBy || '-'}</td>
+          </tr>
+        `).join('') : `<tr><td colspan="5" class="text-center">No OnShop entries</td></tr>`}
         <tr>
           <td colspan="2" class="text-center"><strong>ONSHOP</strong></td>
           <td class="text-right"><strong>${onShopCash.toLocaleString()}</strong></td>
           <td class="text-right"><strong>${onShopOnline.toLocaleString()}</strong></td>
           <td class="text-right"><strong>${onShopTotal.toLocaleString()}</strong></td>
-          <td></td>
         </tr>
-        <tr class="total-row">
-          <td colspan="2" class="text-center"><strong>GRAND TOTAL</strong></td>
+        <tr class="text-center total-row">
+          <td colspan="2"><strong>GRAND TOTAL</strong></td>
           <td class="text-right"><strong>${totalCash.toLocaleString()}</strong></td>
           <td class="text-right"><strong>${totalOnline.toLocaleString()}</strong></td>
           <td class="text-right"><strong>${grandTotal.toLocaleString()}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 6%">S.No</th>
+          <th style="width: 44%">Expense Name</th>
+          <th style="width: 15%">Mode</th>
+          <th style="width: 15%">Amount (₹)</th>
+          <th style="width: 20%">By</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${expenses.length ? expenses.map((e, i) => `
+          <tr>
+            <td class="text-center">${i + 1}</td>
+            <td>${e.name || e.title || '-'}</td>
+            <td class="text-center">${e.mode === 'offline' ? 'Cash' : 'Online'}</td>
+            <td class="text-right">${Number(e.amount || 0).toLocaleString()}</td>
+            <td>${e.addedBy || '-'}</td>
+          </tr>
+        `).join('') : `<tr><td colspan="5" class="text-center">No Expenses</td></tr>`}
+        <tr class="total-row">
+          <td colspan="3" class="text-center"><strong>TOTAL EXPENSES</strong></td>
+          <td class="text-right"><strong>${Number(expensesTotal || 0).toLocaleString()}</strong></td>
           <td></td>
         </tr>
       </tbody>
