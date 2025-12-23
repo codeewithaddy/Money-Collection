@@ -6,6 +6,8 @@ import NetInfo from "@react-native-community/netinfo";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Calendar } from 'react-native-calendars';
 import { syncSellerEntriesBidirectional } from '../utils/sellerSync';
+import colors from '../theme/colors';
+import typography from '../theme/typography';
 
 export default function AddSellerEntryScreen({ navigation }) {
   const [allowed, setAllowed] = useState(false);
@@ -138,27 +140,27 @@ export default function AddSellerEntryScreen({ navigation }) {
 
   if (!checked) return (
     <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-      <Text>Loading...</Text>
+      <Text style={{ color: colors.muted }}>Loading...</Text>
     </View>
   );
 
   if (!allowed) return (
     <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-      <Text style={{ fontSize: 16, color: '#e74c3c' }}>Super Admin only</Text>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}><Text style={{ color: '#fff' }}>Back</Text></TouchableOpacity>
+      <Text style={{ fontSize: 16, color: colors.danger }}>Super Admin only</Text>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}><Text style={{ color: colors.white }}>Back</Text></TouchableOpacity>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
-        <Icon name="arrow-back" size={24} color="#333" />
+      <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 6 }}>
+        <Icon name="arrow-back" size={24} color={colors.accent} />
       </TouchableOpacity>
       <Text style={styles.title}>Add Seller Entry</Text>
 
       <TouchableOpacity style={styles.dropdown} onPress={() => setSellerModalVisible(true)}>
-        <Text style={{ fontSize: 16 }}>{selectedSeller ? selectedSeller.name : 'Select Seller'}</Text>
-        <Icon name="arrow-drop-down" size={24} color="#333" />
+        <Text style={{ fontSize: 16, color: colors.text }}>{selectedSeller ? selectedSeller.name : 'Select Seller'}</Text>
+        <Icon name="arrow-drop-down" size={24} color={colors.muted} />
       </TouchableOpacity>
 
       <View style={styles.typeRow}>
@@ -172,7 +174,7 @@ export default function AddSellerEntryScreen({ navigation }) {
 
       <TextInput
         placeholder="Description (optional)"
-        placeholderTextColor="#666"
+        placeholderTextColor={colors.muted}
         value={description}
         onChangeText={setDescription}
         style={styles.input}
@@ -184,17 +186,17 @@ export default function AddSellerEntryScreen({ navigation }) {
         value={amount}
         onChangeText={setAmount}
         style={styles.input}
-        placeholderTextColor="#666"
+        placeholderTextColor={colors.muted}
       />
 
       <TouchableOpacity style={styles.dateSelector} onPress={() => setDateModalVisible(true)}>
-        <Icon name="calendar-today" size={20} color="#007AFF" />
+        <Icon name="calendar-today" size={20} color={colors.accent} />
         <Text style={styles.dateSelectorText}>{date}</Text>
-        <Icon name="arrow-drop-down" size={24} color="#666" />
+        <Icon name="arrow-drop-down" size={24} color={colors.muted} />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.saveBtn} onPress={saveEntry}>
-        <Text style={{ color: '#fff', fontSize: 16 }}>Save</Text>
+        <Text style={{ color: colors.white, fontSize: 16, fontWeight: typography.weightSemibold }}>Save</Text>
       </TouchableOpacity>
 
       {/* Seller Modal */}
@@ -203,6 +205,7 @@ export default function AddSellerEntryScreen({ navigation }) {
           <View style={styles.modalBox}>
             <TextInput
               placeholder="Search seller..."
+              placeholderTextColor={colors.muted}
               value={sellerSearch}
               onChangeText={handleSellerSearch}
               style={styles.searchBox}
@@ -212,16 +215,16 @@ export default function AddSellerEntryScreen({ navigation }) {
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.listItem} onPress={() => { setSelectedSeller(item); setSellerModalVisible(false); }}>
-                  <Text style={{ fontSize: 15 }}>{item.name}</Text>
-                  <Text style={{ color: '#666', fontSize: 12 }}>{item.location || '-'}</Text>
+                  <Text style={{ fontSize: 15, color: colors.text }}>{item.name}</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>{item.location || '-'}</Text>
                 </TouchableOpacity>
               )}
               nestedScrollEnabled
               keyboardShouldPersistTaps="handled"
             />
-            <View style={{ height: 1, backgroundColor: '#eee', marginTop: 8 }} />
+            <View style={{ height: 1, backgroundColor: colors.border, marginTop: 8 }} />
             <TouchableOpacity style={styles.closeBtn} onPress={() => setSellerModalVisible(false)}>
-              <Text style={{ color: '#fff' }}>Close</Text>
+              <Text style={{ color: colors.white }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -236,14 +239,23 @@ export default function AddSellerEntryScreen({ navigation }) {
               current={date}
               onDayPress={(day) => { setDate(day.dateString); setDateModalVisible(false); }}
               maxDate={getToday()}
+              theme={{
+                selectedDayBackgroundColor: colors.accent,
+                selectedDayTextColor: colors.white,
+                todayTextColor: colors.success,
+                arrowColor: colors.accent,
+                monthTextColor: colors.text,
+                dayTextColor: colors.text,
+                textSectionTitleColor: colors.muted,
+              }}
             />
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
               <TouchableOpacity style={[styles.todayBtn, { flex: 1 }]} onPress={() => { setDate(getToday()); setDateModalVisible(false); }}>
-                <Icon name="today" size={20} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '600' }}>Today</Text>
+                <Icon name="today" size={20} color={colors.white} />
+                <Text style={{ color: colors.white, fontWeight: '600' }}>Today</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setDateModalVisible(false)}>
-                <Text style={{ color: '#fff', fontWeight: '600' }}>Close</Text>
+                <Text style={{ color: colors.white, fontWeight: '600' }}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -254,24 +266,24 @@ export default function AddSellerEntryScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 16 },
-  dropdown: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, marginBottom: 12 },
+  container: { flex: 1, padding: 20, backgroundColor: colors.bg },
+  title: { fontSize: typography.h1, fontWeight: typography.weightBold, marginBottom: 16, color: colors.accent },
+  dropdown: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 12 },
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  typeBtn: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, alignItems: 'center' },
-  typeActive: { backgroundColor: '#d1f0d1' },
-  typeText: { color: '#333', fontWeight: '600' },
-  typeTextActive: { color: '#2e7d32' },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, marginBottom: 12 },
-  dateSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e3f2fd', padding: 12, borderRadius: 10, marginBottom: 12, gap: 8 },
-  dateSelectorText: { flex: 1, fontSize: 15, fontWeight: '600', color: '#007AFF' },
-  saveBtn: { backgroundColor: '#2ecc71', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 4 },
+  typeBtn: { flex: 1, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 12, alignItems: 'center' },
+  typeActive: { backgroundColor: '#F2F4F7' },
+  typeText: { color: colors.text, fontWeight: typography.weightSemibold },
+  typeTextActive: { color: colors.accent },
+  input: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, borderRadius: 10, padding: 12, marginBottom: 12 },
+  dateSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: 14, borderRadius: 12, marginBottom: 12, gap: 8, borderWidth: 1, borderColor: colors.border },
+  dateSelectorText: { flex: 1, fontSize: typography.subtitle, fontWeight: typography.weightSemibold, color: colors.accent },
+  saveBtn: { backgroundColor: colors.accent, padding: 14, borderRadius: 12, alignItems: 'center', marginTop: 4 },
   modalContainer: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalBox: { backgroundColor: '#fff', margin: 20, padding: 15, borderRadius: 12, maxHeight: '70%' },
-  searchBox: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 10 },
-  listItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  closeBtn: { backgroundColor: '#007AFF', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  calendarModalBox: { backgroundColor: '#fff', margin: 20, borderRadius: 16, padding: 16, maxHeight: '80%' },
-  todayBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2ecc71', padding: 12, borderRadius: 10, gap: 6 },
-  backBtn: { marginTop: 12, backgroundColor: '#007AFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  modalBox: { backgroundColor: colors.surface, margin: 20, padding: 16, borderRadius: 16, maxHeight: '70%', borderWidth: 1, borderColor: colors.border },
+  searchBox: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, marginBottom: 10, color: colors.text, backgroundColor: colors.bg },
+  listItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  closeBtn: { backgroundColor: colors.accent, padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 10 },
+  calendarModalBox: { backgroundColor: colors.surface, margin: 20, borderRadius: 16, padding: 16, maxHeight: '80%', borderWidth: 1, borderColor: colors.border },
+  todayBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.success, padding: 12, borderRadius: 10, gap: 6 },
+  backBtn: { marginTop: 12, backgroundColor: colors.accent, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 },
 });

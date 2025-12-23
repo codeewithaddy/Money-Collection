@@ -16,6 +16,9 @@ import NetInfo from "@react-native-community/netinfo";
 import firestore from "@react-native-firebase/firestore";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { autoCleanup } from "../utils/dataCleanup";
+import colors from "../theme/colors";
+import typography from "../theme/typography";
+import GradientBackground from "../components/GradientBackground";
 
 const ViewOnShopScreen = ({ navigation }) => {
   const [sections, setSections] = useState([]);
@@ -481,24 +484,25 @@ const ViewOnShopScreen = ({ navigation }) => {
         <Icon
           name={isExpanded ? "expand-less" : "expand-more"}
           size={24}
-          color="#6DD5B4"
+          color={colors.accent}
         />
       </TouchableOpacity>
     );
   };
 
   return (
+    <GradientBackground>
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-back" size={24} color="#fff" />
+          <Icon name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <View style={{flex: 1, alignItems: "center"}}>
-          <Icon name="store" size={32} color="#6DD5B4" />
+          <Icon name="store" size={32} color={colors.accent} />
           <Text style={styles.title}>OnShop Collections</Text>
         </View>
         <TouchableOpacity style={styles.syncBtn} onPress={syncToFirebase}>
-          <Icon name="sync" size={20} color="#fff" />
+          <Icon name="sync" size={20} color={colors.white} />
           <Text style={styles.syncBtnText}>Sync</Text>
           {pendingChanges && <View style={styles.pendingDot} />}
         </TouchableOpacity>
@@ -517,13 +521,13 @@ const ViewOnShopScreen = ({ navigation }) => {
         <View style={styles.totalDivider} />
         <View style={styles.totalItem}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={[styles.totalValue, {color: "#6DD5B4"}]}>₹{totals.grand}</Text>
+          <Text style={[styles.totalValue, {color: colors.success}]}>₹{totals.grand}</Text>
         </View>
       </View>
 
       {sections.length === 0 ? (
         <View style={styles.emptyState}>
-          <Icon name="store" size={64} color="#4A4560" />
+          <Icon name="store" size={64} color={colors.border} />
           <Text style={styles.emptyText}>No OnShop entries yet</Text>
           <Text style={styles.emptySubtext}>Add your first shop sale</Text>
         </View>
@@ -611,6 +615,7 @@ const ViewOnShopScreen = ({ navigation }) => {
         </View>
       </Modal>
     </View>
+    </GradientBackground>
   );
 };
 

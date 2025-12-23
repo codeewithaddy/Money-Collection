@@ -14,6 +14,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialIcon from "react-native-vector-icons/MaterialIcons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import colors from "../theme/colors";
+import typography from "../theme/typography";
+import GradientBackground from "../components/GradientBackground";
 
 const WorkerReportScreen = ({ navigation }) => {
   const [workers, setWorkers] = useState([]);
@@ -263,13 +266,14 @@ const WorkerReportScreen = ({ navigation }) => {
   );
 
   return (
+    <GradientBackground>
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         >
-          <Icon name="arrow-back" size={24} color="#000" />
+          <Icon name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.title}>Worker Report</Text>
       </View>
@@ -279,11 +283,11 @@ const WorkerReportScreen = ({ navigation }) => {
         style={styles.workerSelector}
         onPress={() => setWorkerModalVisible(true)}
       >
-        <MaterialIcon name="person" size={24} color="#007AFF" />
+        <MaterialIcon name="person" size={24} color={colors.accent} />
         <Text style={styles.workerSelectorText}>
           {selectedWorker ? selectedWorker.workerName : "Select Worker"}
         </Text>
-        <MaterialIcon name="arrow-drop-down" size={24} color="#666" />
+        <MaterialIcon name="arrow-drop-down" size={24} color={colors.muted} />
       </TouchableOpacity>
 
       {selectedWorker && (
@@ -300,7 +304,7 @@ const WorkerReportScreen = ({ navigation }) => {
                   style={styles.filterButton}
                   onPress={() => setFilterModalVisible(true)}
                 >
-                  <MaterialIcon name="filter-list" size={20} color="#007AFF" />
+                  <MaterialIcon name="filter-list" size={20} color={colors.accent} />
                   <Text style={styles.filterButtonText}>{getFilterLabel()}</Text>
                 </TouchableOpacity>
                 {filterType !== "all" && (
@@ -313,7 +317,7 @@ const WorkerReportScreen = ({ navigation }) => {
                       setEndDate(null);
                     }}
                   >
-                    <MaterialIcon name="close" size={18} color="#666" />
+                    <MaterialIcon name="close" size={18} color={colors.muted} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -355,7 +359,7 @@ const WorkerReportScreen = ({ navigation }) => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <MaterialIcon name="inbox" size={64} color="#ccc" />
+              <MaterialIcon name="inbox" size={64} color={colors.border} />
               <Text style={styles.emptyText}>No collections found</Text>
             </View>
           }
@@ -505,13 +509,14 @@ const WorkerReportScreen = ({ navigation }) => {
         </View>
       </Modal>
     </SafeAreaView>
+    </GradientBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: 'transparent',
     paddingTop: 60,
     paddingHorizontal: 16,
   },
@@ -525,25 +530,26 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: typography.h2,
+    fontWeight: typography.weightBold,
+    color: colors.text,
   },
   workerSelector: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   workerSelectorText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
     marginLeft: 12,
-    color: "#333",
+    color: colors.text,
   },
   filterBar: {
     flexDirection: "row",
@@ -555,20 +561,24 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e3f2fd",
+    backgroundColor: colors.surface,
     padding: 12,
     borderRadius: 10,
     gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   filterButtonText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#007AFF",
+    fontWeight: typography.weightSemibold,
+    color: colors.accent,
   },
   clearFilterBtn: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.surface,
     padding: 10,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   statsScroll: {
     marginBottom: 16,

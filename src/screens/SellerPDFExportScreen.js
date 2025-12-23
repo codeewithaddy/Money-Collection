@@ -8,6 +8,9 @@ import Share from 'react-native-share';
 import Pdf from 'react-native-pdf';
 import firestore from '@react-native-firebase/firestore';
 import { syncSellerEntriesBidirectional } from '../utils/sellerSync';
+import colors from '../theme/colors';
+import typography from '../theme/typography';
+import GradientBackground from '../components/GradientBackground';
 
 export default function SellerPDFExportScreen({ navigation }) {
   const [allowed, setAllowed] = useState(false);
@@ -250,45 +253,50 @@ export default function SellerPDFExportScreen({ navigation }) {
 
   if (!checked) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2ecc71" />
-      </View>
+      <GradientBackground>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={colors.success} />
+        </View>
+      </GradientBackground>
     );
   }
 
   if (!allowed) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ fontSize: 16, color: '#e74c3c' }}>Super Admin only</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}><Text style={{ color: '#fff' }}>Back</Text></TouchableOpacity>
-      </View>
+      <GradientBackground>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text style={{ fontSize: 16, color: colors.danger }}>Super Admin only</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}><Text style={{ color: colors.white }}>Back</Text></TouchableOpacity>
+        </View>
+      </GradientBackground>
     );
   }
 
   return (
+    <GradientBackground>
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backIcon}>
-          <MaterialIcon name="arrow-back" size={24} color="#000" />
+          <MaterialIcon name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.title}>Seller PDF Export</Text>
       </View>
 
       <View style={[styles.actions, { marginBottom: 8 }]}>
         <TouchableOpacity style={[styles.actionBtn, styles.generateBtn]} onPress={generatePDF} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : (<>
-            <MaterialIcon name="picture-as-pdf" size={20} color="#fff" />
+          {loading ? <ActivityIndicator color={colors.white} /> : (<>
+            <MaterialIcon name="picture-as-pdf" size={20} color={colors.white} />
             <Text style={styles.actionText}>Generate PDF</Text>
           </>)}
         </TouchableOpacity>
         {pdfPath && (
           <>
             <TouchableOpacity style={[styles.actionBtn, styles.shareBtn]} onPress={sharePDF}>
-              <MaterialIcon name="share" size={20} color="#fff" />
+              <MaterialIcon name="share" size={20} color={colors.white} />
               <Text style={styles.actionText}>Share</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.actionBtn, styles.viewBtn]} onPress={() => setPdfModalVisible(true)}>
-              <MaterialIcon name="visibility" size={20} color="#fff" />
+              <MaterialIcon name="visibility" size={20} color={colors.white} />
               <Text style={styles.actionText}>View</Text>
             </TouchableOpacity>
           </>
@@ -299,7 +307,7 @@ export default function SellerPDFExportScreen({ navigation }) {
         {/* Filters */}
         <View style={styles.filterRow}>
           <TouchableOpacity style={styles.filterBtn} onPress={() => navigation.navigate('ViewSellerLedger')}>
-            <MaterialIcon name="receipt-long" size={20} color="#007AFF" />
+            <MaterialIcon name="receipt-long" size={20} color={colors.accent} />
             <Text style={styles.filterBtnText}>Open Ledger</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.filterBtn} onPress={() => {
@@ -309,7 +317,7 @@ export default function SellerPDFExportScreen({ navigation }) {
             const next = availableMonths[(idx + 1) % availableMonths.length];
             setSelectedMonth(next);
           }}>
-            <MaterialIcon name="date-range" size={20} color="#007AFF" />
+            <MaterialIcon name="date-range" size={20} color={colors.accent} />
             <Text style={styles.filterBtnText}>{selectedMonth === 'all' ? 'All Time' : selectedMonth}</Text>
           </TouchableOpacity>
         </View>
@@ -359,55 +367,56 @@ export default function SellerPDFExportScreen({ navigation }) {
           <View style={styles.pdfHeader}>
             <Text style={styles.pdfTitle}>Seller Ledger</Text>
             <TouchableOpacity onPress={() => setPdfModalVisible(false)} style={styles.pdfCloseBtn}>
-              <MaterialIcon name="close" size={22} color="#fff" />
+              <MaterialIcon name="close" size={22} color={colors.white} />
             </TouchableOpacity>
           </View>
           {pdfPath ? (
             <Pdf source={{ uri: pdfPath.startsWith('file://') ? pdfPath : `file://${pdfPath}` }} style={styles.pdf} />
           ) : (
-            <View style={styles.pdfPlaceholder}><MaterialIcon name="picture-as-pdf" size={64} color="#ccc" /><Text style={{ color: '#999', marginTop: 8 }}>No PDF</Text></View>
+            <View style={styles.pdfPlaceholder}><MaterialIcon name="picture-as-pdf" size={64} color={colors.border} /><Text style={{ color: colors.muted, marginTop: 8 }}>No PDF</Text></View>
           )}
         </View>
       </Modal>
     </View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', paddingTop: 60, paddingHorizontal: 16 },
+  container: { flex: 1, backgroundColor: 'transparent', paddingTop: 60, paddingHorizontal: 16 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   backIcon: { padding: 4, marginRight: 12 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#000' },
+  title: { fontSize: typography.h2, fontWeight: typography.weightBold, color: colors.text },
   filterRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  filterBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#e3f2fd', padding: 12, borderRadius: 10, justifyContent: 'center' },
-  filterBtnText: { fontWeight: '600', color: '#007AFF' },
-  selector: { backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 12 },
-  selectorLabel: { fontWeight: '700', marginBottom: 8, color: '#333' },
-  pill: { backgroundColor: '#f0f0f0', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
-  pillActive: { backgroundColor: '#007AFF' },
-  pillText: { color: '#333', fontWeight: '600' },
-  pillTextActive: { color: '#fff' },
-  summaryCard: { backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 12, elevation: 1 },
-  summaryTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
+  filterBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surface, padding: 12, borderRadius: 10, justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  filterBtnText: { fontWeight: typography.weightSemibold, color: colors.accent },
+  selector: { backgroundColor: colors.surface, padding: 12, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: colors.border },
+  selectorLabel: { fontWeight: typography.weightBold, marginBottom: 8, color: colors.text },
+  pill: { backgroundColor: '#F2F4F7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: colors.border },
+  pillActive: { backgroundColor: colors.accent },
+  pillText: { color: colors.text, fontWeight: typography.weightSemibold },
+  pillTextActive: { color: colors.white },
+  summaryCard: { backgroundColor: colors.surface, padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: colors.border },
+  summaryTitle: { fontSize: typography.h3, fontWeight: typography.weightBold, marginBottom: 8, color: colors.accent },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  rowCard: { backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 10, elevation: 1 },
+  rowCard: { backgroundColor: colors.surface, padding: 14, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  rowTitle: { fontSize: 15, fontWeight: '700', color: '#333' },
-  rowAmount: { fontSize: 16, fontWeight: 'bold', color: '#2e7d32' },
+  rowTitle: { fontSize: 15, fontWeight: typography.weightBold, color: colors.text },
+  rowAmount: { fontSize: 16, fontWeight: typography.weightBold, color: colors.success },
   rowGrid: { flexDirection: 'row', gap: 10 },
-  gridItem: { flex: 1, backgroundColor: '#f9f9f9', padding: 10, borderRadius: 8 },
-  gridLabel: { fontSize: 12, color: '#666' },
-  gridValue: { fontSize: 14, fontWeight: '700', color: '#333' },
+  gridItem: { flex: 1, backgroundColor: colors.surface, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: colors.border },
+  gridLabel: { fontSize: 12, color: colors.muted },
+  gridValue: { fontSize: 14, fontWeight: typography.weightBold, color: colors.text },
   actions: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginVertical: 16 },
   actionBtn: { minWidth: 120, flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8 },
-  actionText: { color: '#fff', fontWeight: '600' },
-  generateBtn: { backgroundColor: '#007AFF' },
-  shareBtn: { backgroundColor: '#2ecc71' },
-  viewBtn: { backgroundColor: '#6c757d' },
-  backBtn: { marginTop: 12, backgroundColor: '#007AFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
-  pdfContainer: { flex: 1, backgroundColor: '#fff' },
-  pdfHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, paddingTop: 50, backgroundColor: '#3E3D52' },
-  pdfTitle: { color: '#fff', fontWeight: '700' },
+  actionText: { color: colors.white, fontWeight: typography.weightSemibold },
+  generateBtn: { backgroundColor: colors.accent },
+  shareBtn: { backgroundColor: colors.success },
+  viewBtn: { backgroundColor: colors.text },
+  backBtn: { marginTop: 12, backgroundColor: colors.accent, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  pdfContainer: { flex: 1, backgroundColor: colors.white },
+  pdfHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, paddingTop: 50, backgroundColor: colors.accent },
+  pdfTitle: { color: colors.white, fontWeight: typography.weightBold },
   pdfCloseBtn: { padding: 6, backgroundColor: '#00000040', borderRadius: 6 },
   pdf: { flex: 1 },
   pdfPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },

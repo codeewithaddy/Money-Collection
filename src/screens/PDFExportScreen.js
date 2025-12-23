@@ -20,6 +20,9 @@ import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import Pdf from 'react-native-pdf';
 import Share from 'react-native-share';
 import RNFS from 'react-native-fs';
+import colors from "../theme/colors";
+import typography from "../theme/typography";
+import GradientBackground from "../components/GradientBackground";
 
 const PDFExportScreen = ({ navigation }) => {
   const [selectedDate, setSelectedDate] = useState(null);
@@ -644,10 +647,11 @@ const PDFExportScreen = ({ navigation }) => {
   };
 
   return (
+    <GradientBackground>
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-back" size={24} color="#000" />
+          <Icon name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.title}>PDF Export</Text>
       </View>
@@ -696,11 +700,11 @@ const PDFExportScreen = ({ navigation }) => {
         style={styles.dateSelector}
         onPress={() => setDateModalVisible(true)}
       >
-        <MaterialIcon name="event" size={24} color="#007AFF" />
+        <MaterialIcon name="event" size={24} color={colors.accent} />
         <Text style={styles.dateSelectorText}>
           {selectedDate || "Select Date"}
         </Text>
-        <MaterialIcon name="arrow-drop-down" size={24} color="#666" />
+        <MaterialIcon name="arrow-drop-down" size={24} color={colors.muted} />
       </TouchableOpacity>
 
       {/* Report Preview */}
@@ -798,11 +802,12 @@ const PDFExportScreen = ({ navigation }) => {
               markedDates={{
                 [selectedDate]: {
                   selected: true,
-                  selectedColor: '#007AFF',
+                  selectedColor: colors.accent,
+                  selectedTextColor: colors.white,
                 },
                 [todayDate]: {
                   marked: true,
-                  dotColor: '#2ecc71',
+                  dotColor: colors.success,
                 },
               }}
               maxDate={todayDate}
@@ -812,9 +817,12 @@ const PDFExportScreen = ({ navigation }) => {
                 return date.toISOString().split('T')[0];
               })()}
               theme={{
-                selectedDayBackgroundColor: '#007AFF',
-                todayTextColor: '#2ecc71',
-                arrowColor: '#007AFF',
+                selectedDayBackgroundColor: colors.accent,
+                selectedDayTextColor: colors.white,
+                todayTextColor: colors.success,
+                arrowColor: colors.accent,
+                monthTextColor: colors.text,
+                textMonthFontWeight: '700',
               }}
             />
 
@@ -826,7 +834,7 @@ const PDFExportScreen = ({ navigation }) => {
                   setDateModalVisible(false);
                 }}
               >
-                <MaterialIcon name="today" size={20} color="#fff" />
+                <MaterialIcon name="today" size={20} color={colors.white} />
                 <Text style={styles.todayBtnText}>Today</Text>
               </TouchableOpacity>
 
@@ -851,13 +859,13 @@ const PDFExportScreen = ({ navigation }) => {
                 onPress={sharePDF}
                 style={styles.pdfShareBtn}
               >
-                <MaterialIcon name="share" size={24} color="#fff" />
+                <MaterialIcon name="share" size={24} color={colors.white} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setPdfModalVisible(false)}
                 style={styles.pdfCloseBtn}
               >
-                <MaterialIcon name="close" size={24} color="#fff" />
+                <MaterialIcon name="close" size={24} color={colors.white} />
               </TouchableOpacity>
             </View>
           </View>
@@ -878,20 +886,21 @@ const PDFExportScreen = ({ navigation }) => {
             />
           ) : (
             <View style={styles.pdfPlaceholder}>
-              <MaterialIcon name="picture-as-pdf" size={64} color="#ccc" />
+              <MaterialIcon name="picture-as-pdf" size={64} color={colors.border} />
               <Text style={styles.pdfPlaceholderText}>No PDF to display</Text>
             </View>
           )}
         </View>
       </Modal>
     </View>
+    </GradientBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: 'transparent',
     paddingTop: 60,
     paddingHorizontal: 16,
   },
@@ -905,42 +914,44 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: typography.h2,
+    fontWeight: typography.weightBold,
+    color: colors.text,
   },
   dateSelector: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   dateSelectorText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
     marginLeft: 12,
-    color: "#333",
+    color: colors.text,
   },
   previewContainer: {
     flex: 1,
     marginBottom: 16,
   },
   summaryCard: {
-    backgroundColor: "#d4f4d7",
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   summaryTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: typography.h3,
+    fontWeight: typography.weightBold,
     marginBottom: 12,
-    color: "#2c5f2d",
+    color: colors.accent,
   },
   summaryRow: {
     flexDirection: "row",
@@ -949,23 +960,24 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 15,
-    color: "#2c5f2d",
+    color: colors.text,
   },
   summaryValue: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#2c5f2d",
+    fontWeight: typography.weightSemibold,
+    color: colors.text,
   },
   totalValue: {
     fontSize: 18,
-    color: "#2ecc71",
+    color: colors.success,
   },
   counterCard: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   counterHeader: {
     flexDirection: "row",
@@ -973,30 +985,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 12,
     borderBottomWidth: 2,
-    borderBottomColor: "#007AFF",
+    borderBottomColor: colors.accent,
     marginBottom: 12,
   },
   counterName: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
+    fontWeight: typography.weightBold,
+    color: colors.text,
   },
   counterTotal: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#2ecc71",
+    fontWeight: typography.weightBold,
+    color: colors.success,
   },
   breakdown: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: colors.surface,
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
   },
   breakdownTitle: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: typography.weightBold,
     marginBottom: 8,
-    color: "#333",
+    color: colors.text,
   },
   breakdownRow: {
     flexDirection: "row",
@@ -1005,33 +1017,33 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: 14,
-    color: "#666",
+    color: colors.muted,
   },
   breakdownValue: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: typography.weightSemibold,
+    color: colors.text,
   },
   usersSection: {
     marginTop: 8,
   },
   userItem: {
-    backgroundColor: "#f0f8ff",
+    backgroundColor: colors.surface,
     padding: 10,
     borderLeftWidth: 3,
-    borderLeftColor: "#2ecc71",
+    borderLeftColor: colors.success,
     borderRadius: 6,
     marginBottom: 8,
   },
   userName: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: typography.weightSemibold,
+    color: colors.text,
     marginBottom: 4,
   },
   userBreakdown: {
     fontSize: 12,
-    color: "#666",
+    color: colors.muted,
   },
   emptyContainer: {
     flex: 1,
@@ -1040,7 +1052,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#999",
+    color: colors.muted,
     marginTop: 16,
   },
   actionButtons: {
@@ -1060,31 +1072,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 6,
   },
-  generateBtn: {
-    backgroundColor: "#e91e63",
-  },
-  viewBtn: {
-    backgroundColor: "#2196f3",
-  },
-  shareBtn: {
-    backgroundColor: "#4caf50",
-  },
-  actionBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  generateBtn: { backgroundColor: colors.accent },
+  viewBtn: { backgroundColor: colors.text },
+  shareBtn: { backgroundColor: colors.success },
+  actionBtnText: { color: colors.white, fontSize: 16, fontWeight: typography.weightSemibold },
   modalContainer: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
   },
   calendarModalBox: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     margin: 20,
     borderRadius: 16,
     padding: 16,
     paddingBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalTitle: {
     fontSize: 18,
@@ -1102,43 +1106,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2ecc71",
+    backgroundColor: colors.success,
     padding: 12,
     borderRadius: 10,
     gap: 6,
   },
-  todayBtnText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  closeBtn: {
-    flex: 1,
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  closeBtnText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  pdfContainer: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
-  pdfHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#007AFF",
-    padding: 16,
-    paddingTop: 50,
-  },
-  pdfTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-  },
+  todayBtnText: { color: colors.white, fontWeight: typography.weightSemibold },
+  closeBtn: { flex: 1, backgroundColor: colors.accent, padding: 12, borderRadius: 10, alignItems: "center" },
+  closeBtnText: { color: colors.white, fontWeight: typography.weightSemibold },
+  pdfContainer: { flex: 1, backgroundColor: colors.white },
+  pdfHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: colors.accent, padding: 16, paddingTop: 50 },
+  pdfTitle: { fontSize: 18, fontWeight: typography.weightBold, color: colors.white },
   pdfActions: {
     flexDirection: "row",
     gap: 15,
@@ -1149,22 +1127,9 @@ const styles = StyleSheet.create({
   pdfCloseBtn: {
     padding: 4,
   },
-  pdf: {
-    flex: 1,
-    width: Dimensions.get('window').width,
-    backgroundColor: "#f0f0f0",
-  },
-  pdfPlaceholder: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
-  pdfPlaceholderText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#999",
-  },
+  pdf: { flex: 1, width: Dimensions.get('window').width, backgroundColor: colors.surface },
+  pdfPlaceholder: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bg },
+  pdfPlaceholderText: { marginTop: 16, fontSize: 16, color: colors.muted },
 });
 
 export default PDFExportScreen;

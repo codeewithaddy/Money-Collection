@@ -14,6 +14,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Calendar } from 'react-native-calendars';
+import colors from "../theme/colors";
+import typography from "../theme/typography";
+import GradientBackground from "../components/GradientBackground";
 
 export default function AddOnShopScreen({ navigation }) {
   const [customerName, setCustomerName] = useState("");
@@ -134,13 +137,14 @@ export default function AddOnShopScreen({ navigation }) {
   };
 
   return (
+    <GradientBackground>
     <View style={styles.container}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Icon name="arrow-back" size={24} color="#fff" />
+        <Icon name="arrow-back" size={24} color={colors.accent} />
       </TouchableOpacity>
 
       <View style={styles.header}>
-        <Icon name="store" size={32} color="#6DD5B4" />
+        <Icon name="store" size={32} color={colors.accent} />
         <Text style={styles.title}>OnShop Collection</Text>
         <Text style={styles.subtitle}>Record direct shop sales</Text>
       </View>
@@ -153,7 +157,7 @@ export default function AddOnShopScreen({ navigation }) {
             style={styles.dateButton}
             onPress={() => setShowCalendar(!showCalendar)}
           >
-            <Icon name="calendar-today" size={20} color="#6DD5B4" />
+            <Icon name="calendar-today" size={20} color={colors.accent} />
             <Text style={styles.dateText}>{selectedDate}</Text>
           </TouchableOpacity>
         </View>
@@ -165,19 +169,14 @@ export default function AddOnShopScreen({ navigation }) {
               setShowCalendar(false);
             }}
             markedDates={{
-              [selectedDate]: { selected: true, selectedColor: '#6DD5B4' }
+              [selectedDate]: { selected: true, selectedColor: colors.accent, selectedTextColor: colors.white }
             }}
             theme={{
-              backgroundColor: '#2C2B3E',
-              calendarBackground: '#2C2B3E',
-              textSectionTitleColor: '#6DD5B4',
-              selectedDayBackgroundColor: '#6DD5B4',
-              selectedDayTextColor: '#ffffff',
-              todayTextColor: '#6DD5B4',
-              dayTextColor: '#ffffff',
-              textDisabledColor: '#555',
-              monthTextColor: '#6DD5B4',
-              arrowColor: '#6DD5B4',
+              selectedDayBackgroundColor: colors.accent,
+              selectedDayTextColor: colors.white,
+              todayTextColor: colors.success,
+              arrowColor: colors.accent,
+              monthTextColor: colors.text,
             }}
             style={styles.calendar}
           />
@@ -189,7 +188,7 @@ export default function AddOnShopScreen({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="Enter customer name (e.g., Naveen, Gautam)"
-            placeholderTextColor="#888"
+            placeholderTextColor={colors.muted}
             value={customerName}
             onChangeText={setCustomerName}
           />
@@ -201,7 +200,7 @@ export default function AddOnShopScreen({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="Enter amount"
-            placeholderTextColor="#888"
+            placeholderTextColor={colors.muted}
             keyboardType="numeric"
             value={amount}
             onChangeText={setAmount}
@@ -219,7 +218,7 @@ export default function AddOnShopScreen({ navigation }) {
               <Icon 
                 name="payments" 
                 size={20} 
-                color={mode === "offline" ? "#fff" : "#6DD5B4"} 
+                color={mode === "offline" ? colors.white : colors.accent} 
               />
               <Text style={[styles.modeText, mode === "offline" && styles.modeTextActive]}>
                 Cash
@@ -232,7 +231,7 @@ export default function AddOnShopScreen({ navigation }) {
               <Icon 
                 name="account-balance" 
                 size={20} 
-                color={mode === "online" ? "#fff" : "#6DD5B4"} 
+                color={mode === "online" ? colors.white : colors.accent} 
               />
               <Text style={[styles.modeText, mode === "online" && styles.modeTextActive]}>
                 Online
@@ -245,7 +244,7 @@ export default function AddOnShopScreen({ navigation }) {
         <View style={styles.field}>
           <Text style={styles.label}>Received By</Text>
           <View style={styles.receivedByBox}>
-            <Icon name="person" size={20} color="#6DD5B4" />
+            <Icon name="person" size={20} color={colors.accent} />
             <Text style={styles.receivedByText}>{user?.displayName || "Loading..."}</Text>
           </View>
         </View>
@@ -257,20 +256,23 @@ export default function AddOnShopScreen({ navigation }) {
         </TouchableOpacity>
       </ScrollView>
     </View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1E1E2E",
+    backgroundColor: 'transparent',
     padding: 20,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#4A4560",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
@@ -280,14 +282,14 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: typography.h2,
+    fontWeight: typography.weightBold,
+    color: colors.text,
     marginTop: 10,
   },
   subtitle: {
     fontSize: 14,
-    color: "#888",
+    color: colors.muted,
     marginTop: 5,
   },
   form: {
@@ -298,21 +300,21 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: "#6DD5B4",
+    color: colors.accent,
     marginBottom: 8,
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
   },
   dateButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2C2B3E",
+    backgroundColor: colors.surface,
     padding: 15,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#4A4560",
+    borderColor: colors.border,
   },
   dateText: {
-    color: "#fff",
+    color: colors.text,
     fontSize: 16,
     marginLeft: 10,
   },
@@ -321,13 +323,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-    backgroundColor: "#2C2B3E",
+    backgroundColor: colors.surface,
     padding: 15,
     borderRadius: 10,
-    color: "#fff",
+    color: colors.text,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#4A4560",
+    borderColor: colors.border,
   },
   modeContainer: {
     flexDirection: "row",
@@ -341,41 +343,41 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#6DD5B4",
-    backgroundColor: "#2C2B3E",
+    borderColor: colors.accent,
+    backgroundColor: colors.surface,
     gap: 8,
   },
   modeBtnActive: {
-    backgroundColor: "#6DD5B4",
-    borderColor: "#6DD5B4",
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   modeText: {
-    color: "#6DD5B4",
+    color: colors.accent,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
   },
   modeTextActive: {
-    color: "#fff",
+    color: colors.white,
   },
   receivedByBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2C2B3E",
+    backgroundColor: colors.surface,
     padding: 15,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#4A4560",
+    borderColor: colors.border,
     gap: 10,
   },
   receivedByText: {
-    color: "#fff",
+    color: colors.text,
     fontSize: 16,
   },
   saveBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#6DD5B4",
+    backgroundColor: colors.success,
     padding: 18,
     borderRadius: 10,
     marginTop: 10,
@@ -383,8 +385,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   saveBtnText: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: typography.weightBold,
   },
 });

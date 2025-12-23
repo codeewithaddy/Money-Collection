@@ -13,6 +13,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialIcon from "react-native-vector-icons/MaterialIcons";
+import colors from "../theme/colors";
+import typography from "../theme/typography";
+import GradientBackground from "../components/GradientBackground";
 
 const CounterReportScreen = ({ navigation }) => {
   const [counters, setCounters] = useState([]);
@@ -182,13 +185,14 @@ const CounterReportScreen = ({ navigation }) => {
   );
 
   return (
+    <GradientBackground>
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         >
-          <Icon name="arrow-back" size={24} color="#000" />
+          <Icon name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.title}>Counter Report</Text>
       </View>
@@ -198,11 +202,11 @@ const CounterReportScreen = ({ navigation }) => {
         style={styles.counterSelector}
         onPress={() => setCounterModalVisible(true)}
       >
-        <MaterialIcon name="person" size={24} color="#007AFF" />
+        <MaterialIcon name="person" size={24} color={colors.accent} />
         <Text style={styles.counterSelectorText}>
           {selectedCounter ? selectedCounter.counterName : "Select Counter"}
         </Text>
-        <MaterialIcon name="arrow-drop-down" size={24} color="#666" />
+        <MaterialIcon name="arrow-drop-down" size={24} color={colors.muted} />
       </TouchableOpacity>
 
       {selectedCounter && (
@@ -218,7 +222,7 @@ const CounterReportScreen = ({ navigation }) => {
                   style={styles.filterButton}
                   onPress={() => setFilterModalVisible(true)}
                 >
-                  <MaterialIcon name="filter-list" size={20} color="#007AFF" />
+                  <MaterialIcon name="filter-list" size={20} color={colors.accent} />
                   <Text style={styles.filterButtonText}>{getFilterLabel()}</Text>
                 </TouchableOpacity>
                 {filterType !== "all" && (
@@ -231,7 +235,7 @@ const CounterReportScreen = ({ navigation }) => {
                       setEndDate(null);
                     }}
                   >
-                    <MaterialIcon name="close" size={18} color="#666" />
+                    <MaterialIcon name="close" size={18} color={colors.muted} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -273,7 +277,7 @@ const CounterReportScreen = ({ navigation }) => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <MaterialIcon name="inbox" size={64} color="#ccc" />
+              <MaterialIcon name="inbox" size={64} color={colors.border} />
               <Text style={styles.emptyText}>No collections found</Text>
             </View>
           }
@@ -423,13 +427,14 @@ const CounterReportScreen = ({ navigation }) => {
         </View>
       </Modal>
     </SafeAreaView>
+    </GradientBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: 'transparent',
     paddingTop: 60,
     paddingHorizontal: 16,
   },
@@ -443,25 +448,26 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: typography.h2,
+    fontWeight: typography.weightBold,
+    color: colors.text,
   },
   counterSelector: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   counterSelectorText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
     marginLeft: 12,
-    color: "#333",
+    color: colors.text,
   },
   filterBar: {
     flexDirection: "row",
@@ -473,20 +479,24 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e3f2fd",
+    backgroundColor: colors.surface,
     padding: 12,
     borderRadius: 10,
     gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   filterButtonText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#007AFF",
+    fontWeight: typography.weightSemibold,
+    color: colors.accent,
   },
   clearFilterBtn: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.surface,
     padding: 10,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   statsScroll: {
     marginBottom: 16,
@@ -497,27 +507,29 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginRight: 12,
     alignItems: "center",
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   statValue: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: typography.weightBold,
     marginTop: 8,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: "#666",
+    color: colors.muted,
   },
   listContent: {
     paddingBottom: 20,
   },
   collectionCard: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 10,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   collectionHeader: {
     flexDirection: "row",
@@ -525,21 +537,21 @@ const styles = StyleSheet.create({
   },
   collectionDate: {
     fontSize: 14,
-    color: "#666",
+    color: colors.muted,
     marginBottom: 4,
   },
   workerName: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: typography.weightSemibold,
+    color: colors.text,
   },
   collectionRight: {
     alignItems: "flex-end",
   },
   collectionAmount: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#2ecc71",
+    fontWeight: typography.weightBold,
+    color: colors.success,
     marginBottom: 6,
   },
   modeBadge: {
@@ -551,15 +563,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cashBadge: {
-    backgroundColor: "#ff9800",
+    backgroundColor: colors.success,
   },
   onlineBadge: {
-    backgroundColor: "#2196f3",
+    backgroundColor: colors.accent,
   },
   modeText: {
     fontSize: 11,
-    color: "#fff",
-    fontWeight: "600",
+    color: colors.white,
+    fontWeight: typography.weightSemibold,
   },
   emptyContainer: {
     alignItems: "center",
@@ -568,7 +580,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#999",
+    color: colors.muted,
     marginTop: 16,
   },
   modalContainer: {
@@ -577,15 +589,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalBox: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     margin: 20,
     borderRadius: 16,
     padding: 20,
     maxHeight: "80%",
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: typography.weightBold,
     marginBottom: 16,
     textAlign: "center",
   },
@@ -594,16 +608,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: colors.border,
   },
   counterItemName: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: typography.weightSemibold,
+    color: colors.text,
   },
   counterItemSub: {
     fontSize: 13,
-    color: "#666",
+    color: colors.muted,
     marginTop: 4,
   },
   filterOption: {
@@ -612,29 +626,31 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 10,
     marginBottom: 8,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   selectedFilterOption: {
-    backgroundColor: "#e3f2fd",
+    backgroundColor: '#F2F4F7',
   },
   filterOptionText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 16,
-    color: "#333",
+    color: colors.text,
   },
   selectedText: {
-    color: "#007AFF",
-    fontWeight: "600",
+    color: colors.accent,
+    fontWeight: typography.weightSemibold,
   },
   filterSection: {
     marginTop: 20,
   },
   filterSectionTitle: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: typography.weightBold,
     marginBottom: 12,
-    color: "#333",
+    color: colors.text,
   },
   dateOption: {
     flexDirection: "row",
@@ -642,40 +658,42 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 6,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   highlightedDate: {
-    backgroundColor: "#e3f2fd",
+    backgroundColor: '#F2F4F7',
   },
   dateOptionText: {
     flex: 1,
     marginLeft: 8,
     fontSize: 14,
-    color: "#333",
+    color: colors.text,
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
     marginTop: 12,
     marginBottom: 8,
-    color: "#666",
+    color: colors.muted,
   },
   helpText: {
     fontSize: 13,
-    color: "#999",
+    color: colors.muted,
     marginBottom: 12,
   },
   closeBtn: {
-    backgroundColor: "#007AFF",
+    backgroundColor: colors.accent,
     padding: 14,
     borderRadius: 10,
     alignItems: "center",
     marginTop: 16,
   },
   closeBtnText: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
   },
 });
 

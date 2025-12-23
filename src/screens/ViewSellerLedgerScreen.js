@@ -5,6 +5,9 @@ import firestore from "@react-native-firebase/firestore";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Calendar } from 'react-native-calendars';
 import { syncSellerEntriesBidirectional, queueSellerDelete } from "../utils/sellerSync";
+import colors from "../theme/colors";
+import typography from "../theme/typography";
+import GradientBackground from "../components/GradientBackground";
 
 export default function ViewSellerLedgerScreen({ navigation }) {
   const [allowed, setAllowed] = useState(false);
@@ -255,30 +258,35 @@ export default function ViewSellerLedgerScreen({ navigation }) {
 
   if (!checked) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text>Loading...</Text>
-      </View>
+      <GradientBackground>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text style={{ color: colors.text }}>Loading...</Text>
+        </View>
+      </GradientBackground>
     );
   }
 
   if (!allowed) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ fontSize: 16, color: '#e74c3c' }}>Super Admin only</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}><Text style={{ color: '#fff' }}>Back</Text></TouchableOpacity>
-      </View>
+      <GradientBackground>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text style={{ fontSize: 16, color: colors.danger }}>Super Admin only</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}><Text style={{ color: colors.white }}>Back</Text></TouchableOpacity>
+        </View>
+      </GradientBackground>
     );
   }
 
   return (
+    <GradientBackground>
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
-          <Icon name="arrow-back" size={24} color="#333" />
+          <Icon name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Seller Ledger</Text>
         <TouchableOpacity onPress={() => navigation.navigate('SellerPDFExport')} style={{ padding: 4 }}>
-          <Icon name="picture-as-pdf" size={24} color="#e74c3c" />
+          <Icon name="picture-as-pdf" size={24} color={colors.danger} />
         </TouchableOpacity>
       </View>
 
@@ -292,10 +300,10 @@ export default function ViewSellerLedgerScreen({ navigation }) {
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={[styles.entryAmount, item.type === 'purchase' ? styles.amountPurchase : styles.amountPayment]}>₹{item.amount}</Text>
                 <TouchableOpacity onPress={() => openEdit(item)} style={{ padding: 6, marginLeft: 8 }}>
-                  <Icon name="edit" size={18} color="#007AFF" />
+                  <Icon name="edit" size={18} color={colors.accent} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => confirmDelete(item)} style={{ padding: 6 }}>
-                  <Icon name="delete" size={18} color="#e74c3c" />
+                  <Icon name="delete" size={18} color={colors.danger} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -311,8 +319,8 @@ export default function ViewSellerLedgerScreen({ navigation }) {
         style={{ flex: 1 }}
         ListEmptyComponent={
           <View style={{ alignItems: 'center', marginTop: 40 }}>
-            <Icon name="inbox" size={64} color="#ccc" />
-            <Text style={{ color: '#999', marginTop: 12 }}>No entries</Text>
+            <Icon name="inbox" size={64} color={colors.border} />
+            <Text style={{ color: colors.muted, marginTop: 12 }}>No entries</Text>
           </View>
         }
       />
@@ -333,14 +341,14 @@ export default function ViewSellerLedgerScreen({ navigation }) {
                     setSellerModal(false);
                   }}
                 >
-                  <Text style={{ fontSize: 15 }}>{item.name}</Text>
-                  <Text style={{ color: '#666', fontSize: 12 }}>{item.location || '-'}</Text>
+                  <Text style={{ fontSize: 15, color: colors.text }}>{item.name}</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>{item.location || '-'}</Text>
                 </TouchableOpacity>
               )}
             />
-            <View style={{ height: 1, backgroundColor: '#eee', marginTop: 8 }} />
+            <View style={{ height: 1, backgroundColor: colors.border, marginTop: 8 }} />
             <TouchableOpacity style={styles.closeBtn} onPress={() => setSellerModal(false)}>
-              <Text style={{ color: '#fff', fontWeight: '600' }}>Close</Text>
+              <Text style={{ color: colors.white, fontWeight: typography.weightSemibold }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -356,14 +364,14 @@ export default function ViewSellerLedgerScreen({ navigation }) {
               keyExtractor={(m) => m}
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.modalItem} onPress={() => { setSelectedMonth(item); setMonthModal(false); }}>
-                  <Text style={{ fontSize: 15 }}>{item}</Text>
+                  <Text style={{ fontSize: 15, color: colors.text }}>{item}</Text>
                 </TouchableOpacity>
               )}
-              ListEmptyComponent={<Text style={{ color: '#999' }}>No months available</Text>}
+              ListEmptyComponent={<Text style={{ color: colors.muted }}>No months available</Text>}
             />
-            <View style={{ height: 1, backgroundColor: '#eee', marginTop: 8 }} />
+            <View style={{ height: 1, backgroundColor: colors.border, marginTop: 8 }} />
             <TouchableOpacity style={styles.closeBtn} onPress={() => setMonthModal(false)}>
-              <Text style={{ color: '#fff', fontWeight: '600' }}>Close</Text>
+              <Text style={{ color: colors.white, fontWeight: typography.weightSemibold }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -383,30 +391,30 @@ export default function ViewSellerLedgerScreen({ navigation }) {
             </View>
             <TextInput
               placeholder="Description (optional)"
-              placeholderTextColor="#666"
+              placeholderTextColor={colors.muted}
               value={editDesc}
               onChangeText={setEditDesc}
               style={styles.input}
             />
             <TextInput
               placeholder="Amount"
-              placeholderTextColor="#666"
+              placeholderTextColor={colors.muted}
               keyboardType="numeric"
               value={editAmount}
               onChangeText={setEditAmount}
               style={styles.input}
             />
             <TouchableOpacity style={styles.dateSelector} onPress={() => setEditDateModal(true)}>
-              <Icon name="calendar-today" size={20} color="#007AFF" />
+              <Icon name="calendar-today" size={20} color={colors.accent} />
               <Text style={styles.dateSelectorText}>{editDate || 'Select date'}</Text>
-              <Icon name="arrow-drop-down" size={24} color="#666" />
+              <Icon name="arrow-drop-down" size={24} color={colors.muted} />
             </TouchableOpacity>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModal(false)}>
-                <Text style={{ color: '#fff', fontWeight: '600' }}>Cancel</Text>
+                <Text style={{ color: colors.white, fontWeight: typography.weightSemibold }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}>
-                <Text style={{ color: '#fff', fontWeight: '600' }}>Save</Text>
+                <Text style={{ color: colors.white, fontWeight: typography.weightSemibold }}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -421,59 +429,67 @@ export default function ViewSellerLedgerScreen({ navigation }) {
               current={editDate}
               onDayPress={(d) => { setEditDate(d.dateString); setEditDateModal(false); }}
               maxDate={new Date().toISOString().slice(0,10)}
+              theme={{
+                selectedDayBackgroundColor: colors.accent,
+                selectedDayTextColor: colors.white,
+                todayTextColor: colors.success,
+                arrowColor: colors.accent,
+                monthTextColor: colors.text,
+              }}
             />
             <TouchableOpacity style={[styles.closeBtn, { marginTop: 12 }]} onPress={() => setEditDateModal(false)}>
-              <Text style={{ color: '#fff', fontWeight: '600' }}>Close</Text>
+              <Text style={{ color: colors.white, fontWeight: typography.weightSemibold }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
     </View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#333' },
-  selector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 10, marginBottom: 12, elevation: 1 },
-  selectorText: { flex: 1, marginLeft: 10, fontSize: 15, fontWeight: '600', color: '#333' },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  headerTitle: { fontSize: 20, fontWeight: typography.weightBold, color: colors.text },
+  selector: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: 14, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: colors.border },
+  selectorText: { flex: 1, marginLeft: 10, fontSize: 15, fontWeight: typography.weightSemibold, color: colors.text },
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  monthBtn: { flex: 1, alignItems: 'center', backgroundColor: '#f0f0f0', padding: 12, borderRadius: 10 },
-  monthActive: { backgroundColor: '#e3f2fd' },
-  monthText: { fontWeight: '600', color: '#333' },
-  monthTextActive: { color: '#007AFF' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fff', marginBottom: 12 },
-  searchInput: { flex: 1, fontSize: 15, padding: 0, color: '#000' },
-  statCard: { flex: 1, padding: 14, borderRadius: 12, marginRight: 10, alignItems: 'center', elevation: 1 },
-  statValue: { fontSize: 18, fontWeight: 'bold', marginTop: 6 },
-  statLabel: { fontSize: 12, color: '#666' },
-  entryCard: { backgroundColor: '#fff', padding: 14, borderRadius: 10, marginHorizontal: 12, marginBottom: 10, elevation: 1 },
+  monthBtn: { flex: 1, alignItems: 'center', backgroundColor: colors.surface, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.border },
+  monthActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  monthText: { fontWeight: typography.weightSemibold, color: colors.text },
+  monthTextActive: { color: colors.white, fontWeight: typography.weightSemibold },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surface, marginBottom: 12 },
+  searchInput: { flex: 1, fontSize: 15, padding: 0, color: colors.text },
+  statCard: { flex: 1, padding: 14, borderRadius: 12, marginRight: 10, alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  statValue: { fontSize: 18, fontWeight: typography.weightBold, marginTop: 6, color: colors.accent },
+  statLabel: { fontSize: 12, color: colors.muted },
+  entryCard: { backgroundColor: colors.surface, padding: 14, borderRadius: 10, marginHorizontal: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
   entryHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  entryDate: { fontSize: 13, color: '#666' },
-  entryAmount: { fontSize: 16, fontWeight: 'bold' },
-  amountPurchase: { color: '#2e7d32' },
-  amountPayment: { color: '#1976d2' },
-  entrySeller: { fontSize: 14, fontWeight: '600', color: '#333' },
-  entryDesc: { fontSize: 12, color: '#666', marginTop: 4 },
-  typeBadge: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgePurchase: { backgroundColor: '#e8f5e9' },
-  badgePayment: { backgroundColor: '#e3f2fd' },
-  badgeText: { fontSize: 11, fontWeight: '700', color: '#333' },
+  entryDate: { fontSize: 13, color: colors.muted },
+  entryAmount: { fontSize: 16, fontWeight: typography.weightBold },
+  amountPurchase: { color: colors.success },
+  amountPayment: { color: colors.accent },
+  entrySeller: { fontSize: 14, fontWeight: typography.weightSemibold, color: colors.text },
+  entryDesc: { fontSize: 12, color: colors.muted, marginTop: 4 },
+  typeBadge: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: '#F2F4F7' },
+  badgePurchase: { },
+  badgePayment: { },
+  badgeText: { fontSize: 11, fontWeight: typography.weightBold, color: colors.text },
   modalContainer: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalBox: { backgroundColor: '#fff', margin: 20, padding: 20, borderRadius: 12, maxHeight: '80%' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' },
-  modalItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  closeBtn: { backgroundColor: '#007AFF', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  backBtn: { marginTop: 12, backgroundColor: '#007AFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  modalBox: { backgroundColor: colors.surface, margin: 20, padding: 20, borderRadius: 12, maxHeight: '80%', borderWidth: 1, borderColor: colors.border },
+  modalTitle: { fontSize: 18, fontWeight: typography.weightBold, marginBottom: 10, textAlign: 'center', color: colors.accent },
+  modalItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  closeBtn: { backgroundColor: colors.accent, padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  backBtn: { marginTop: 12, backgroundColor: colors.accent, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  typeBtn: { flex: 1, alignItems: 'center', backgroundColor: '#f0f0f0', padding: 10, borderRadius: 10 },
-  typeActive: { backgroundColor: '#e3f2fd' },
-  typeText: { fontWeight: '600', color: '#333' },
-  typeTextActive: { color: '#007AFF' },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16, marginTop: 8, color: '#000' },
-  dateSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#eee', marginTop: 8 },
-  dateSelectorText: { flex: 1, marginLeft: 10, fontSize: 14, fontWeight: '600', color: '#333' },
-  saveBtn: { flex: 1, backgroundColor: '#2ecc71', padding: 12, borderRadius: 8, alignItems: 'center' },
-  cancelBtn: { flex: 1, backgroundColor: '#6c757d', padding: 12, borderRadius: 8, alignItems: 'center' },
+  typeBtn: { flex: 1, alignItems: 'center', backgroundColor: colors.surface, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.border },
+  typeActive: { backgroundColor: '#F2F4F7' },
+  typeText: { fontWeight: typography.weightSemibold, color: colors.text },
+  typeTextActive: { color: colors.accent },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 16, marginTop: 8, color: colors.text },
+  dateSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.border, marginTop: 8 },
+  dateSelectorText: { flex: 1, marginLeft: 10, fontSize: 14, fontWeight: typography.weightSemibold, color: colors.text },
+  saveBtn: { flex: 1, backgroundColor: colors.success, padding: 12, borderRadius: 8, alignItems: 'center' },
+  cancelBtn: { flex: 1, backgroundColor: colors.text, padding: 12, borderRadius: 8, alignItems: 'center' },
 });

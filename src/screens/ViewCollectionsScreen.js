@@ -18,6 +18,9 @@ import Icon from "react-native-vector-icons/Ionicons";
 import MaterialIcon from "react-native-vector-icons/MaterialIcons";
 import { autoCleanup } from "../utils/dataCleanup";
 import { Calendar } from 'react-native-calendars';
+import colors from "../theme/colors";
+import typography from "../theme/typography";
+import GradientBackground from "../components/GradientBackground";
 
 const ViewCollectionsScreen = ({ navigation }) => {
   const [sections, setSections] = useState([]);
@@ -508,7 +511,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
           <MaterialIcon
             name={isExpanded ? "expand-less" : "expand-more"}
             size={24}
-            color="#666"
+            color={colors.muted}
           />
         </TouchableOpacity>
 
@@ -527,7 +530,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
                 {/* Show lock icon for read-only entries (worker viewing past dates) */}
                 {user?.role !== "admin" && col.date !== todayDate ? (
                   <View style={styles.readOnlyBadge}>
-                    <MaterialIcon name="lock" size={16} color="#999" />
+                    <MaterialIcon name="lock" size={16} color={colors.muted} />
                   </View>
                 ) : (
                   <>
@@ -535,13 +538,13 @@ const ViewCollectionsScreen = ({ navigation }) => {
                       onPress={() => openEditModal(col)}
                       style={styles.iconBtn}
                     >
-                      <MaterialIcon name="edit" size={20} color="#007AFF" />
+                      <MaterialIcon name="edit" size={20} color={colors.accent} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => deleteItem(col)}
                       style={styles.iconBtn}
                     >
-                      <MaterialIcon name="delete" size={20} color="#f44336" />
+                      <MaterialIcon name="delete" size={20} color={colors.danger} />
                     </TouchableOpacity>
                   </>
                 )}
@@ -564,6 +567,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
   };
 
   return (
+    <GradientBackground>
     <View style={styles.container}>
       <View style={styles.topBar}>
         {/* Back Button */}
@@ -571,7 +575,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={24} color="black" />
+          <Icon name="arrow-back" size={24} color={colors.accent} />
         </TouchableOpacity>
 
         <Text style={styles.title}>
@@ -582,7 +586,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
       {/* Last Synced Info */}
       {lastSynced && (
         <View style={styles.syncInfo}>
-          <MaterialIcon name="cloud-done" size={14} color="#2ecc71" />
+          <MaterialIcon name="cloud-done" size={14} color={colors.success} />
           <Text style={styles.syncInfoText}>
             Last synced: {new Date(lastSynced).toLocaleString('en-IN', {
               timeZone: 'Asia/Kolkata',
@@ -601,16 +605,16 @@ const ViewCollectionsScreen = ({ navigation }) => {
           style={styles.filterBtn}
           onPress={() => setDateModalVisible(true)}
         >
-          <MaterialIcon name="calendar-today" size={18} color="#007AFF" />
+          <MaterialIcon name="calendar-today" size={18} color={colors.accent} />
           <Text style={styles.filterText}>
             {selectedDate || (user?.role === "admin" ? "All Dates" : "Today")}
           </Text>
           {user?.role !== "admin" && selectedDate && selectedDate !== todayDate && (
-            <MaterialIcon name="lock" size={14} color="#ff9800" />
+            <MaterialIcon name="lock" size={14} color={colors.muted} />
           )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.syncBtn} onPress={syncToFirebase}>
-          <MaterialIcon name="sync" size={20} color="#fff" />
+          <MaterialIcon name="sync" size={20} color={colors.white} />
           <Text style={styles.syncBtnText}>Sync</Text>
           {pendingChanges && <View style={styles.pendingDot} />}
         </TouchableOpacity>
@@ -619,7 +623,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
       {/* Info for workers viewing past dates */}
       {user?.role !== "admin" && selectedDate && selectedDate !== todayDate && (
         <View style={styles.readOnlyBanner}>
-          <MaterialIcon name="info" size={18} color="#ff9800" />
+          <MaterialIcon name="info" size={18} color={colors.accent} />
           <Text style={styles.readOnlyText}>
             Viewing past date ({selectedDate}). You can view but cannot edit these entries.
           </Text>
@@ -642,13 +646,13 @@ const ViewCollectionsScreen = ({ navigation }) => {
                 ...(selectedDate ? {
                   [selectedDate]: {
                     selected: true,
-                    selectedColor: '#007AFF',
-                    selectedTextColor: '#fff'
+                    selectedColor: colors.accent,
+                    selectedTextColor: colors.white
                   }
                 } : {}),
                 [todayDate]: {
                   marked: true,
-                  dotColor: '#2ecc71'
+                  dotColor: colors.success
                 }
               }}
               maxDate={todayDate}
@@ -658,11 +662,12 @@ const ViewCollectionsScreen = ({ navigation }) => {
                 return today.toISOString().split('T')[0];
               })()}
               theme={{
-                selectedDayBackgroundColor: '#007AFF',
-                todayTextColor: '#2ecc71',
-                arrowColor: '#007AFF',
-                monthTextColor: '#000',
-                textMonthFontWeight: 'bold',
+                selectedDayBackgroundColor: colors.accent,
+                selectedDayTextColor: colors.white,
+                todayTextColor: colors.success,
+                arrowColor: colors.accent,
+                monthTextColor: colors.text,
+                textMonthFontWeight: '700',
                 textDayFontSize: 16,
                 textMonthFontSize: 18,
               }}
@@ -676,7 +681,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
                   setDateModalVisible(false);
                 }}
               >
-                <MaterialIcon name="event" size={20} color="#fff" />
+                <MaterialIcon name="event" size={20} color={colors.white} />
                 <Text style={styles.allDatesBtnText}>All Dates</Text>
               </TouchableOpacity>
 
@@ -687,7 +692,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
                   setDateModalVisible(false);
                 }}
               >
-                <MaterialIcon name="today" size={20} color="#fff" />
+                <MaterialIcon name="today" size={20} color={colors.white} />
                 <Text style={styles.todayBtnText}>Today</Text>
               </TouchableOpacity>
               
@@ -695,7 +700,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
                 onPress={() => setDateModalVisible(false)}
                 style={styles.closeBtn}
               >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>Close</Text>
+                <Text style={{ color: colors.white, fontWeight: "600" }}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -765,7 +770,7 @@ const ViewCollectionsScreen = ({ navigation }) => {
 
       {sections.length === 0 ? (
         <View style={styles.noDataContainer}>
-          <MaterialIcon name="event-busy" size={64} color="#ccc" />
+          <MaterialIcon name="event-busy" size={64} color={colors.border} />
           {selectedDate ? (
             <>
               <Text style={styles.noData}>0 Collections</Text>
@@ -808,17 +813,18 @@ const ViewCollectionsScreen = ({ navigation }) => {
         </View>
       </View>
     </View>
+    </GradientBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 60, paddingHorizontal: 20, backgroundColor: "#f7f7f7" },
+  container: { flex: 1, paddingTop: 60, paddingHorizontal: 20, backgroundColor: 'transparent' },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
   },
-  title: { fontSize: 22, fontWeight: "bold", flex: 1, marginLeft: 10 },
+  title: { fontSize: typography.h2, fontWeight: typography.weightBold, flex: 1, marginLeft: 10, color: colors.text },
   actionRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -827,12 +833,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   card: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
     marginHorizontal: 5,
   },
   cardHeader: {
@@ -840,21 +846,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  counterName: { fontWeight: "bold", fontSize: 16 },
-  amount: { fontWeight: "bold", fontSize: 18, color: "#2ecc71", marginRight: 8 },
-  detail: { fontSize: 14, color: "#666", marginBottom: 3 },
+  counterName: { fontWeight: typography.weightBold, fontSize: 16, color: colors.text },
+  amount: { fontWeight: typography.weightBold, fontSize: 18, color: colors.success, marginRight: 8 },
+  detail: { fontSize: 14, color: colors.muted, marginBottom: 3 },
   sectionHeader: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.surface,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 10,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  sectionTitle: { fontWeight: "bold", fontSize: 16 },
-  sectionTotal: { fontWeight: "bold", fontSize: 16, color: "#2ecc71" },
+  sectionTitle: { fontWeight: "bold", fontSize: 16, color: colors.text },
+  sectionTotal: { fontWeight: "bold", fontSize: 16, color: colors.success },
   noDataContainer: {
     flex: 1,
     justifyContent: "center",
@@ -864,28 +872,29 @@ const styles = StyleSheet.create({
   noData: { 
     textAlign: "center", 
     marginTop: 16, 
-    color: "#777",
+    color: colors.muted,
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
   },
   noDataHint: {
     textAlign: "center",
     marginTop: 8,
-    color: "#999",
+    color: colors.muted,
     fontSize: 14,
   },
   summary: {
     marginTop: 10,
-    backgroundColor: "#d4f4d7",
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   summaryTitle: {
     fontWeight: "bold",
     fontSize: 18,
     marginBottom: 12,
-    color: "#2c5f2d",
+    color: colors.accent,
   },
   summaryRow: {
     flexDirection: "row",
@@ -893,30 +902,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 6,
   },
-  summaryLabel: {
-    fontSize: 15,
-    color: "#2c5f2d",
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#2c5f2d",
-  },
+  summaryLabel: { fontSize: 15, color: colors.text },
+  summaryValue: { fontSize: 16, fontWeight: typography.weightSemibold, color: colors.text },
   totalRow: {
     marginTop: 8,
     paddingTop: 12,
     borderTopWidth: 2,
-    borderTopColor: "#2ecc71",
+    borderTopColor: colors.border,
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#2c5f2d",
+    fontWeight: typography.weightBold,
+    color: colors.text,
   },
   totalValue: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#2c5f2d",
+    fontWeight: typography.weightBold,
+    color: colors.accent,
   },
   backBtn: {
     padding: 4,
@@ -925,32 +927,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f0f9ff",
+    backgroundColor: colors.surface,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 6,
     marginBottom: 8,
     gap: 6,
   },
-  syncInfoText: {
-    fontSize: 12,
-    color: "#666",
-  },
+  syncInfoText: { fontSize: 12, color: colors.muted },
   readOnlyBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff3cd",
+    backgroundColor: colors.surface,
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
     marginBottom: 12,
     gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   readOnlyText: {
     flex: 1,
     fontSize: 13,
-    color: "#856404",
-    fontWeight: "500",
+    color: colors.muted,
+    fontWeight: typography.weightMedium,
   },
   readOnlyBadge: {
     padding: 8,
@@ -959,7 +960,9 @@ const styles = StyleSheet.create({
   filterBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e3f2fd",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -968,13 +971,13 @@ const styles = StyleSheet.create({
   filterText: {
     marginLeft: 6,
     fontSize: 14,
-    color: "#007AFF",
+    color: colors.accent,
     fontWeight: "600",
   },
   syncBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2ecc71",
+    backgroundColor: colors.success,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -983,8 +986,8 @@ const styles = StyleSheet.create({
   syncBtnText: {
     marginLeft: 6,
     fontSize: 14,
-    color: "#fff",
-    fontWeight: "600",
+    color: colors.white,
+    fontWeight: typography.weightSemibold,
   },
   pendingDot: {
     position: "absolute",
@@ -993,18 +996,18 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#ff6b6b",
+    backgroundColor: colors.danger,
   },
   collectionsCount: {
     fontSize: 12,
-    color: "#999",
+    color: colors.muted,
     marginTop: 2,
   },
   breakdown: {
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
+    borderTopColor: colors.border,
   },
   breakdownItem: {
     flexDirection: "row",
@@ -1012,24 +1015,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: colors.surface,
     borderRadius: 6,
     marginBottom: 6,
   },
   workerName: {
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
     fontSize: 14,
-    color: "#333",
+    color: colors.text,
   },
   modeText: {
     fontSize: 12,
-    color: "#666",
+    color: colors.muted,
     marginTop: 2,
   },
   breakdownAmount: {
-    fontWeight: "bold",
+    fontWeight: typography.weightBold,
     fontSize: 16,
-    color: "#2ecc71",
+    color: colors.success,
     marginRight: 8,
   },
   iconBtn: {
@@ -1042,19 +1045,23 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   modalBox: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     margin: 20,
     padding: 15,
     borderRadius: 12,
     maxHeight: "70%",
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   calendarModalBox: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     margin: 20,
     borderRadius: 16,
     padding: 16,
     paddingBottom: 20,
     maxHeight: "80%",
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   calendarScroll: {
     maxHeight: 450,
@@ -1065,34 +1072,32 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
   },
-  selectedCalendarDate: {
-    backgroundColor: "#e3f2fd",
-  },
+  selectedCalendarDate: { backgroundColor: '#F2F4F7' },
   dateCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 15,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
   },
   dateIconBox: {
     width: 50,
     height: 50,
-    backgroundColor: "#007AFF",
+    backgroundColor: colors.accent,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   dateDay: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 18,
     fontWeight: "bold",
   },
   dateMonth: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 10,
     fontWeight: "600",
   },
@@ -1101,17 +1106,17 @@ const styles = StyleSheet.create({
   },
   calendarDateText: {
     fontSize: 16,
-    color: "#333",
+    color: colors.text,
     fontWeight: "600",
   },
   dateYear: {
     fontSize: 12,
-    color: "#666",
+    color: colors.muted,
     marginTop: 2,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: typography.weightBold,
     marginBottom: 15,
     textAlign: "center",
   },
@@ -1122,45 +1127,44 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: colors.border,
   },
-  selectedDateItem: {
-    backgroundColor: "#e3f2fd",
-  },
+  selectedDateItem: { backgroundColor: '#F2F4F7' },
   dateItemText: {
     fontSize: 16,
-    color: "#333",
+    color: colors.text,
   },
   selectedDateText: {
-    color: "#007AFF",
-    fontWeight: "600",
+    color: colors.accent,
+    fontWeight: typography.weightSemibold,
   },
   closeBtn: {
     flex: 1,
-    backgroundColor: "#007AFF",
+    backgroundColor: colors.accent,
     padding: 12,
     borderRadius: 10,
     alignItems: "center",
   },
   saveBtn: {
-    backgroundColor: "#2ecc71",
+    backgroundColor: colors.success,
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: typography.weightSemibold,
     marginTop: 12,
     marginBottom: 6,
-    color: "#333",
+    color: colors.text,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 10,
     fontSize: 16,
+    color: colors.text,
   },
   modeBox: {
     flexDirection: "row",
@@ -1172,20 +1176,20 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: colors.border,
     borderRadius: 8,
     marginHorizontal: 4,
   },
-  activeMode: { backgroundColor: "#d1f0d1" },
+  activeMode: { backgroundColor: '#F2F4F7' },
   buttonRow: {
-    backgroundColor: "#2ecc71",
+    backgroundColor: colors.success,
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
   },
   saveBtnText: {
-    color: "#fff",
-    fontWeight: "600",
+    color: colors.white,
+    fontWeight: typography.weightSemibold,
     fontSize: 15,
   },
   calendarFooter: {
@@ -1198,13 +1202,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#9c27b0",
+    backgroundColor: colors.accent,
     padding: 12,
     borderRadius: 10,
     gap: 6,
   },
   allDatesBtnText: {
-    color: "#fff",
+    color: colors.white,
     fontWeight: "600",
     fontSize: 14,
   },
@@ -1213,13 +1217,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2ecc71",
+    backgroundColor: colors.success,
     padding: 12,
     borderRadius: 10,
     gap: 6,
   },
   todayBtnText: {
-    color: "#fff",
+    color: colors.white,
     fontWeight: "600",
     fontSize: 14,
   },

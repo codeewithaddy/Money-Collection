@@ -7,6 +7,8 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import firestore from '@react-native-firebase/firestore';
+import colors from '../theme/colors';
+import typography from '../theme/typography';
 
 // Import screens
 import AddCollectionScreen from '../screens/AddCollectionScreen';
@@ -50,38 +52,38 @@ function CollectionsTab({ navigation }) {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <Text style={styles.sectionTitle}>Counter Collections</Text>
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('AddCollection')}
           >
-            <MaterialIcon name="add-circle" size={48} color="#6DD5B4" />
+            <View style={styles.iconCircle}><MaterialIcon name="add-circle" size={32} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Add Collection</Text>
             <Text style={styles.cardSub}>Record counter payment</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('ViewCollections')}
           >
-            <MaterialIcon name="visibility" size={48} color="#6DD5B4" />
+            <View style={styles.iconCircle}><MaterialIcon name="visibility" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>View Collections</Text>
             <Text style={styles.cardSub}>Browse counter records</Text>
           </TouchableOpacity>
 
           <Text style={styles.sectionTitle}>OnShop Collections</Text>
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('AddOnShop')}
           >
-            <MaterialIcon name="store" size={48} color="#FFB84D" />
+            <View style={styles.iconCircle}><MaterialIcon name="store" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Add OnShop Entry</Text>
             <Text style={styles.cardSub}>Record direct shop sale</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('ViewOnShop')}
           >
-            <MaterialIcon name="receipt-long" size={48} color="#FFB84D" />
+            <View style={styles.iconCircle}><MaterialIcon name="receipt-long" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>View OnShop</Text>
             <Text style={styles.cardSub}>Browse shop sales</Text>
           </TouchableOpacity>
@@ -117,28 +119,28 @@ function ReportsTab({ navigation }) {
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('CounterReport')}
           >
-            <MaterialIcon name="people" size={48} color="#FFB84D" />
+            <View style={styles.iconCircle}><MaterialIcon name="people" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Counter Reports</Text>
             <Text style={styles.cardSub}>View by counter</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('WorkerReport')}
           >
-            <MaterialIcon name="person" size={48} color="#A78BFA" />
+            <View style={styles.iconCircle}><MaterialIcon name="person" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Worker Reports</Text>
             <Text style={styles.cardSub}>View by worker</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('PDFExport')}
           >
-            <MaterialIcon name="picture-as-pdf" size={48} color="#FB7185" />
+            <View style={styles.iconCircle}><MaterialIcon name="picture-as-pdf" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>PDF Export</Text>
             <Text style={styles.cardSub}>Generate reports</Text>
           </TouchableOpacity>
@@ -174,28 +176,28 @@ function SettingsTab({ navigation }) {
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('AdminManageCounters')}
           >
-            <MaterialIcon name="store" size={48} color="#60D4A9" />
+            <View style={styles.iconCircle}><MaterialIcon name="store" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Manage Counters</Text>
             <Text style={styles.cardSub}>Add/Edit counters</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('AdminManageUsers')}
           >
-            <MaterialIcon name="supervisor-account" size={48} color="#7DD3FC" />
+            <View style={styles.iconCircle}><MaterialIcon name="supervisor-account" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Manage Users</Text>
             <Text style={styles.cardSub}>Add/Edit workers</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('Security')}
           >
-            <MaterialIcon name="security" size={48} color="#FFB84D" />
+            <View style={styles.iconCircle}><MaterialIcon name="security" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Security</Text>
             <Text style={styles.cardSub}>PIN & Logout</Text>
           </TouchableOpacity>
@@ -231,37 +233,37 @@ function PurchasesTab({ navigation }) {
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('AddSellerEntry')}
           >
-            <MaterialIcon name="shopping-cart" size={48} color="#60D4A9" />
+            <View style={styles.iconCircle}><MaterialIcon name="shopping-cart" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Add Seller Entry</Text>
             <Text style={styles.cardSub}>Purchase or Payment</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('ViewSellerLedger')}
           >
-            <MaterialIcon name="receipt-long" size={48} color="#FFB84D" />
+            <View style={styles.iconCircle}><MaterialIcon name="receipt-long" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>View Seller Ledger</Text>
             <Text style={styles.cardSub}>Track purchases & payments</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('AdminManageSellers')}
           >
-            <MaterialIcon name="store" size={48} color="#7DD3FC" />
+            <View style={styles.iconCircle}><MaterialIcon name="store" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Manage Sellers</Text>
             <Text style={styles.cardSub}>Add/Edit sellers</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: '#3A3849' }]}
+            style={styles.actionCard}
             onPress={() => navigation.navigate('SellerPDFExport')}
           >
-            <MaterialIcon name="picture-as-pdf" size={48} color="#FB7185" />
+            <View style={styles.iconCircle}><MaterialIcon name="picture-as-pdf" size={28} color={colors.accent} /></View>
             <Text style={styles.cardTitle}>Seller PDF Export</Text>
             <Text style={styles.cardSub}>Seller-wise / Monthly</Text>
           </TouchableOpacity>
@@ -297,20 +299,20 @@ export default function AdminTabs() {
       screenOptions={{
         headerShown: false,
         tabBarHideOnKeyboard: true,
-        tabBarActiveTintColor: '#6DD5B4',
-        tabBarInactiveTintColor: '#8A8A9E',
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          height: 56 + insets.bottom,
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 10),
+          paddingTop: 10,
           borderTopWidth: 1,
-          borderTopColor: '#525174',
-          backgroundColor: '#3E3D52',
-          elevation: 0,
+          borderTopColor: colors.border,
+          backgroundColor: colors.surface,
+          elevation: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
+          fontSize: 12,
+          fontWeight: typography.weightSemibold,
         },
       }}
     >
@@ -359,55 +361,57 @@ export default function AdminTabs() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4A4560',
+    backgroundColor: colors.bg,
   },
   header: {
-    backgroundColor: '#3E3D52',
+    backgroundColor: colors.bg,
     paddingTop: 60,
-    paddingBottom: 24,
+    paddingBottom: 18,
     paddingHorizontal: 20,
-    elevation: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#525174',
+    borderBottomWidth: 0,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontSize: typography.display,
+    fontWeight: typography.weightBold,
+    color: colors.text,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#6DD5B4',
+    fontSize: typography.h3,
+    fontWeight: typography.weightBold,
+    color: colors.accent,
     marginBottom: 12,
     marginTop: 8,
   },
   actionCard: {
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 16,
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    padding: 18,
+    borderRadius: 24,
+    marginBottom: 14,
+    alignItems: 'flex-start',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#525174',
+    borderColor: colors.border,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F2F4F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 12,
-    color: '#FFFFFF',
+    fontSize: typography.h2,
+    fontWeight: typography.weightBold,
+    color: colors.text,
   },
   cardSub: {
-    fontSize: 13,
-    color: '#B0B0C8',
+    fontSize: typography.label,
+    color: colors.muted,
     marginTop: 6,
   },
 });
